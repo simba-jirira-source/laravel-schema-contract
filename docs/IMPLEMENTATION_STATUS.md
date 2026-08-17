@@ -1,116 +1,85 @@
 # Laravel Schema Contract — Implementation Status
 
-> Updated by Phase 16 — Release-Readiness Verification (2026-08-17).
+> Updated by Phase 17 — Post-v0.1 Architecture Review (2026-08-17).
 
 ## Current Phase
 
-**Phase 16 — Complete**
+**Phase 17 — Complete**
 
-Next recommended phase: **Phase 17 — Post-v0.1 Architecture Review** (await explicit maintainer instruction).
+v0.1.0 implementation phases (0–17) are complete. Further product work requires explicit maintainer instruction for **v0.2.0 — Database ↔ Validation**.
 
 ## Release-Readiness Verdict
 
 **READY FOR v0.1.0 RELEASE CANDIDATE**
 
-Phase 16 remediation and GitHub Actions verification are complete for commit `940b396cb16588068b299030c30d08bdb06028b9`. Local validation and CI both pass.
+Phase 16 remediation verified green in GitHub Actions (commit `940b396cb16588068b299030c30d08bdb06028b9`). Phase 17 architecture review confirms v0.1 design is sound for release; recommended refactors are documented for v0.2+ planning.
 
-No tag, GitHub Release, Packagist publish, or branch merge was performed.
+No tag, GitHub Release, Packagist publish, or branch merge was performed in Phase 17.
 
-### GitHub Actions status (2026-08-17)
+### GitHub Actions status
 
-**CI fully green:** Pass
-
-Verified workflows:
+**CI fully green:** Pass (verified Phase 16)
 
 | Workflow | Status |
 |---|---|
 | `tests` | Pass |
 | `database-compatibility` | Pass |
 
-Verified jobs:
+All matrix jobs including parallel Pest smoke pass on the verified commit.
 
-| Job | Status |
+## Phase 17 deliverables
+
+- Post-v0.1 architecture review of rule API, DTO stability, extension points, database support, false-positive risk, performance, developer experience, command output, configuration, and technical debt
+- Findings and classified recommendations recorded in [`docs/ARCHITECTURE_REVIEW.md`](ARCHITECTURE_REVIEW.md)
+- No v0.2 validation analysis implemented
+- No package code, tests, workflows, or configuration changed
+
+### Review headline
+
+| Area | v0.1 verdict |
 |---|---|
-| PHP 8.3 prefer-lowest | Pass |
-| PHP 8.3 prefer-stable | Pass |
-| PHP 8.4 prefer-lowest | Pass |
-| PHP 8.4 prefer-stable | Pass |
-| PHP 8.5 prefer-lowest | Pass |
-| PHP 8.5 prefer-stable | Pass |
-| PHP 8.4 (Windows) | Pass |
-| PHP 8.4 prefer-stable (parallel Pest smoke) | Pass |
-| MySQL compatibility | Pass |
-| PostgreSQL compatibility | Pass |
+| Layer architecture | Strong — boundaries enforced by tests |
+| Rule API | Adequate for column/cast checks; not yet suited to validation semantics |
+| DTOs | Stable readonly foundation; validation needs new DTOs |
+| Extension points | Present in code; not container-backed or publicly documented |
+| DB support | Verified for SQLite/MySQL/PostgreSQL with documented limits |
+| False positives | Conservative policy holds; watch `deleted_at` and validation layer in v0.2 |
+| Performance | Functional; in-run table cache not yet implemented (master spec §31 gap) |
+| DX / CLI | Good for v0.1 scope; structured output deferred correctly |
 
-`update-changelog.yml` was removed in Phase 16 remediation — no post-release changelog mutation.
+### Recommendation classes (see architecture review for detail)
 
-## Phase 16 remediation deliverables
-
-### Test scoping
-
-- `tests/Pest.php` now applies `Tests\TestCase` only to `Feature/` and `Integration/`
-- Pure unit tests under `tests/Unit/` and architecture tests under `tests/Architecture/` run without Orchestra Testbench
-- `IgnoreColumnMatcher` config integration tests moved from unit to `Feature/Configuration/`
-- `ArchTest.php` relocated to `tests/Architecture/` for reliable Pest discovery in serial and parallel runs
-
-### CI and packaging
-
-- Composer cache in `tests.yml` and `database-compatibility.yml` caches download cache only (not `vendor/`)
-- Fresh `composer update` + `composer run prepare` on each job avoids stale Testbench skeleton restores
-- Deleted `.github/workflows/update-changelog.yml`
-- Preserved `.gitattributes` export-ignore; `docs/DATABASE_SUPPORT.md` remains in the consumer archive
-
-### Prior Phase 16 deliverables (retained)
-
-- `CHANGELOG.md` with empty `[Unreleased]` above `[0.1.0] - 2026-08-17`
-- `composer.json` support metadata and reliable `composer test` gate (serial Pest + `@prepare`)
-
-## Definition of Done Audit (v0.1.0)
-
-| Criterion | Result | Notes |
+| Priority | Count | Examples |
 |---|---|---|
-| Package behavior | Pass | Unchanged; audit confirmed |
-| Local quality suite | Pass | See table below |
-| CI fully green | Pass | Verified on commit `940b396` |
-| CHANGELOG ready | Pass | Manual Keep a Changelog; no auto-update workflow |
-| No automatic release | Pass | No tag, release, or publish |
+| Required before v0.2 | 5 | Validation inspector/DTO boundary, layer-tagged violations, validation config keys, validation false-positive policy, table cache |
+| Desirable before v1.0 | 6 | Container bindings, JSON/`--strict` output, public API docs, renderer abstraction |
+| Future / nice-to-have | 5 | Baselines, GitHub annotations, public extend API, persistent cache |
 
-## Quality command results (Phase 16 remediation, 2026-08-17)
+## Phase 16 summary (retained)
 
-| Command | Result | Notes |
-|---|---|---|
-| `composer check:composer` | Pass | |
-| `composer analyse` | Pass | PHPStan L8, 44 files |
-| `composer lint:check` | Pass | |
-| `composer test:types` | Pass | 100% type coverage |
-| `vendor/bin/pest` | Pass | 282 passed, 6 skipped (serial) |
-| `vendor/bin/pest --parallel` | Pass | 282 passed, 6 skipped |
-| `composer test` | Pass | Release gate |
-| `composer test:unit` | Pass | Parallel |
+- Pest/Testbench scoping fix; CI Composer cache-only; `update-changelog.yml` removed
+- `CHANGELOG.md` prepared with `[Unreleased]` above `[0.1.0] - 2026-08-17`
+- Local and CI quality suites pass (282 tests, 6 skipped driver groups)
 
-## Package archive review
+## Quality command results (last verified: Phase 16)
 
-`git archive` export includes consumer documentation (`README.md`, `CHANGELOG.md`, `docs/DATABASE_SUPPORT.md`, `config/`, `src/`). Dev-only paths are excluded via `.gitattributes` (`tests/`, internal docs, workbench, CI configs).
+| Command | Result |
+|---|---|
+| `composer test` | Pass |
+| `vendor/bin/pest` / `--parallel` | Pass |
+| `composer analyse` | Pass (PHPStan L8) |
 
-## Parallel Pest boundary
-
-After TestCase scoping, the full suite runs deterministically in parallel locally and in the CI parallel smoke job (`vendor/bin/pest --parallel`) without `continue-on-error`. Laravel-scoped tests boot Orchestra Testbench only under `Feature/` and `Integration/`; pure unit and architecture tests do not.
-
-## Known limitations (accepted for v0.1.0)
-
-- MySQL/PostgreSQL grouped tests skip without driver env vars (6 tests)
-- PostgreSQL native enums and extension types may map to `unknown`
-- Roadmap features (validation, API Resources, Livewire, baselines, GitHub annotations) are not implemented
+Phase 17 made no code changes; tests were not re-run.
 
 ## Phase Readiness
 
 | Phase | Status |
 |---|---|
-| 0–16 | Complete |
-| 17 — Post-v0.1 review | **Ready to begin** |
+| 0–17 | **Complete** |
+| v0.2 — Database ↔ Validation | **Not started** — await maintainer instruction |
 
 ---
 
-## Decision: **RELEASE CANDIDATE READY**
+## Decision: **RELEASE CANDIDATE READY** (v0.1.0)
 
-v0.1.0 is ready for maintainer-led tagging and release. Phase 17 should not begin until explicitly requested.
+Architecture review complete. Proceed to maintainer-led v0.1.0 tag/release when ready. Next product step: **v0.2.0 — Database ↔ Validation** per [`docs/ARCHITECTURE_REVIEW.md`](ARCHITECTURE_REVIEW.md#recommended-next-step-toward-v020).
