@@ -1,38 +1,38 @@
 # Laravel Schema Contract — Implementation Status
 
-> Updated by Phase 6 — Schema Inspector (2026-08-17).
+> Updated by Phase 7 — Compatibility Engine (2026-08-17).
 
 ## Current Phase
 
-**Phase 6 — Complete**
+**Phase 7 — Complete**
 
-Next recommended phase: **Phase 7 — Compatibility Engine** (await explicit maintainer instruction).
+Next recommended phase: **Phase 8 — Contract Rules** (await explicit maintainer instruction).
 
 ## Current State
 
-The package can **discover concrete Eloquent models**, **inspect/normalize model casts**, and **inspect normalized database schema metadata** per model connection/table. Compatibility rules, analyzer orchestration, and commands are not implemented yet.
+The package can **discover models**, **inspect/normalize casts and schema metadata**, and **evaluate centralized type compatibility** between normalized column and cast types. Contract rules, analyzer orchestration, and commands are not implemented yet.
 
-### Phase 6 deliverables
+### Phase 7 deliverables
 
-- `SchemaInspector` contract and `EloquentSchemaInspector` implementation
-- `SchemaColumnMetadataFactory` to translate Laravel schema column arrays into `RawColumnMetadata` at the support boundary
-- `MissingTableException` for absent model tables
-- Uses each model's effective connection and table from `ModelDefinition`
-- Returns typed `TableDefinition` / `ColumnDefinition` metadata (type, nullable, default, length, precision, scale when available)
-- Unknown driver types map to `DatabaseType::Unknown` without crashing inspection
-- Raw schema arrays stay inside normalization boundaries — analyzer consumers receive DTOs only
-- Integration tests with temporary SQLite schemas (boolean, integer, decimal, string/text, JSON, date/datetime, nullability/defaults, custom tables/connections, missing tables, unsupported types)
-- Unit tests for `SchemaColumnMetadataFactory`
+- `CompatibilityState` enum (`compatible`, `incompatible`, `uncertain`)
+- `CompatibilityResult` DTO with state, reason, suggested severity, suggested cast, and optional scale metadata
+- `TypeCompatibilityMatrix` centralized compatibility service in `src/Compatibility/`
+- Master-spec matrix coverage for boolean, integer family, decimal, float/double, string/text, date/datetime/timestamp, JSON, UUID, and enum columns
+- Conservative no-cast handling (JSON warns; string/text/uuid pass; binary uncertain)
+- Custom-cast and unknown-type cases return `Uncertain` without crashing
+- Decimal scale mismatch detection when both database and cast expose scale
+- Suggested cast generation for incompatible pairings (e.g. `decimal:2`, `array`)
+- Matrix-style Pest unit tests for valid, invalid, uncertain, no-cast, custom, and unknown combinations
 
-### Quality command results (Phase 6, 2026-08-17)
+### Quality command results (Phase 7, 2026-08-17)
 
 | Command | Result | Notes |
 |---|---|---|
 | `composer validate --strict` | Pass | |
 | `composer lint:check` (Pint) | Pass | |
-| `composer analyse` (PHPStan L7) | Pass | 21 files; `--memory-limit=512M` |
+| `composer analyse` (PHPStan L7) | Pass | 24 files; `--memory-limit=512M` |
 | `composer test:types` | Pass | 100% type coverage |
-| `composer test:unit` | Pass | 144 tests, 291 assertions |
+| `composer test:unit` | Pass | 189 tests, 484 assertions |
 
 ## Existing Architecture
 
@@ -41,6 +41,8 @@ The package can **discover concrete Eloquent models**, **inspect/normalize model
 ```text
 src/
 ├── SchemaContractServiceProvider.php
+├── Compatibility/
+│   └── TypeCompatibilityMatrix.php
 ├── Contracts/
 │   ├── ModelDiscoverer.php
 │   ├── ModelInspector.php
@@ -53,43 +55,39 @@ src/
 │   ├── EloquentModelInspector.php
 │   └── EloquentSchemaInspector.php
 ├── DTO/
+│   ├── CompatibilityResult.php
+│   └── ...
 ├── Enums/
+│   ├── CompatibilityState.php
+│   └── ...
 └── Support/
-    ├── CastNormalizer.php
-    ├── DatabaseColumnNormalizer.php
-    ├── RawColumnMetadata.php
-    └── SchemaColumnMetadataFactory.php
 ```
 
-### Inspection flow
+### Compatibility flow
 
 ```text
-ModelDefinition (connection, table)
+ColumnDefinition + optional CastDefinition
         ↓
-EloquentSchemaInspector::inspect()
+TypeCompatibilityMatrix::compare()
         ↓
-Schema::connection(...)->getColumns()
-        ↓
-SchemaColumnMetadataFactory → RawColumnMetadata
-        ↓
-DatabaseColumnNormalizer → ColumnDefinition[]
-        ↓
-TableDefinition
+CompatibilityResult (state, reason, severity, suggested cast)
 ```
 
-Schema inspection is separate from discovery, model inspection, and future analysis orchestration.
+The matrix is presentation-independent. Phase 8 rules will consume it to emit `ContractViolation` records.
 
-### Schema inspection behavior
+### Compatibility behavior
 
-| Behavior | Implementation |
-|---|---|
-| Effective connection/table | Taken from `ModelDefinition` |
-| Missing table | `MissingTableException` |
-| Custom connection | `Schema::connection($model->connection)` |
-| Custom table name | Uses `$model->table` |
-| Unknown driver types | `DatabaseType::Unknown` |
-| Precision/scale | Parsed from driver type when present; null when driver omits them |
-| Raw metadata containment | Laravel column arrays converted in `SchemaColumnMetadataFactory` only |
+| Scenario | State | Suggested severity |
+|---|---|---|
+| Spec-valid cast pairing | `Compatible` | — |
+| Spec-invalid cast pairing | `Incompatible` | `Error` |
+| Decimal scale mismatch (both known) | `Incompatible` | `Error` |
+| JSON column, no cast | `Uncertain` | `Warning` |
+| String/text/uuid, no cast | `Compatible` | — |
+| Unknown database type | `Uncertain` | `Warning` |
+| Custom cast | `Uncertain` | `Info` |
+| Unrecognized cast expression | `Uncertain` | `Warning` |
+| Binary column | `Uncertain` | `Info` |
 
 ## Dependencies
 
@@ -99,56 +97,53 @@ Unchanged from Phase 4 (`illuminate/database`, `illuminate/support`).
 
 | Layer | Status |
 |---|---|
-| Integration — schema inspector | `tests/Integration/Inspectors/EloquentSchemaInspectorTest.php` |
-| Unit — schema metadata factory | `tests/Unit/Support/SchemaColumnMetadataFactoryTest.php` |
-| Unit — column normalizer | Phase 3 |
+| Unit — compatibility matrix | `tests/Unit/Compatibility/TypeCompatibilityMatrixTest.php` |
+| Unit — compatibility enum | `tests/Unit/Enums/CompatibilityStateTest.php` |
+| Unit — DTO | `CompatibilityResult` covered in `DomainDtoTest.php` |
+| Integration — schema inspector | Phase 6 |
 | Feature — discovery / model inspector | Phases 4–5 |
-| Fixtures — schema | `tests/Fixtures/Schema/` |
-
-Testbench `TestCase` configures in-memory SQLite connections (`testing`, `analytics`) with `use_native_json` for realistic JSON column typing in integration tests.
 
 ## CI State
 
-Unchanged from prior phases. PHPStan script includes memory limit flag.
+Unchanged from prior phases.
 
 ## Risks
 
-1. **SQLite driver fidelity** — Laravel SQLite grammars may omit decimal precision/scale and map JSON to `text` unless `use_native_json` is enabled; integration tests account for both declared and omitted metadata.
-2. **Parallel Pest flakiness** — occasional Testbench skeleton config race on Windows under `--parallel`; re-run or `composer prepare` if config bootstrap fails.
-3. **Schema inspector not wired to analyzer yet** — Phase 9 will orchestrate discovery + model + schema inspection.
+1. **Binary columns** — treated as uncertain because the master spec does not define a strict cast mapping.
+2. **No-cast numeric/date columns** — intentionally pass to avoid false positives; JSON without cast warns per spec.
+3. **Matrix not wired to rules yet** — Phase 8 will translate results into structured violations.
 
 ## Conflicts With Master Specification
 
-| Area | Status after Phase 6 |
+| Area | Status after Phase 7 |
 |---|---|
-| Schema inspector | Resolved |
-| Typed table/column metadata | Resolved |
-| Missing table handling | Resolved |
-| Raw metadata boundaries | Resolved |
-| Compatibility engine | Not started — Phase 7 |
+| Centralized compatibility | Resolved |
+| Conservative false-positive policy | Resolved |
+| Decimal scale detection | Resolved (when metadata available) |
+| Contract rules | Not started — Phase 8 |
 | Primary command | Deferred — Phase 10 |
 
 ## Recommended Changes
 
-### Phase 7 (when requested)
+### Phase 8 (when requested)
 
-Compatibility engine returning structured compatibility information between normalized column types and casts.
+Contract rule contract/registry consuming `TypeCompatibilityMatrix` for violations.
 
 ### Later phases
 
-Phases 8–17 per implementation plan.
+Phases 9–17 per implementation plan.
 
 ## Phase Readiness
 
 | Phase | Status |
 |---|---|
-| 0–5 | Complete |
-| 6 — Schema inspector | **Complete** |
-| 7 — Compatibility engine | **Ready to begin** |
-| 8–17 | Blocked — await maintainer instruction |
+| 0–6 | Complete |
+| 7 — Compatibility engine | **Complete** |
+| 8 — Contract rules | **Ready to begin** |
+| 9–17 | Blocked — await maintainer instruction |
 
 ---
 
-## Decision: **READY** (for Phase 7)
+## Decision: **READY** (for Phase 8)
 
-Schema inspection is implemented, tested, and kept separate from analysis. The compatibility engine should not begin until Phase 7 is explicitly requested.
+Type compatibility is centralized, tested, and kept separate from rule orchestration and CLI output. Contract rules should not begin until Phase 8 is explicitly requested.

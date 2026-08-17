@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 use SimbaJirira\SchemaContract\DTO\CastDefinition;
 use SimbaJirira\SchemaContract\DTO\ColumnDefinition;
+use SimbaJirira\SchemaContract\DTO\CompatibilityResult;
 use SimbaJirira\SchemaContract\DTO\ContractViolation;
 use SimbaJirira\SchemaContract\DTO\ModelDefinition;
 use SimbaJirira\SchemaContract\DTO\TableDefinition;
 use SimbaJirira\SchemaContract\Enums\CastType;
+use SimbaJirira\SchemaContract\Enums\CompatibilityState;
 use SimbaJirira\SchemaContract\Enums\DatabaseType;
 use SimbaJirira\SchemaContract\Enums\Severity;
 
@@ -148,6 +150,23 @@ it('builds a warning violation for missing json cast metadata', function () {
     expect($violation->severity)->toBe(Severity::Warning);
     expect($violation->castType)->toBeNull();
     expect($violation->databaseType)->toBe(DatabaseType::Json);
+});
+
+it('builds a compatibility result with severity and scale metadata', function () {
+    $result = new CompatibilityResult(
+        state: CompatibilityState::Incompatible,
+        reason: 'Cast type integer is incompatible with database decimal.',
+        suggestedSeverity: Severity::Error,
+        suggestedCast: 'decimal:2',
+        databaseType: DatabaseType::Decimal,
+        castType: CastType::Integer,
+        databaseScale: 2,
+        castScale: null,
+    );
+
+    expect($result->isCompatible())->toBeFalse()
+        ->and($result->suggestedSeverity)->toBe(Severity::Error)
+        ->and($result->databaseScale)->toBe(2);
 });
 
 it('keeps domain dto properties readonly', function () {
