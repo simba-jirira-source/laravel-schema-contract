@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SimbaJirira\SchemaContract;
 
 use Illuminate\Support\ServiceProvider;
+use SimbaJirira\SchemaContract\Console\Commands\CheckSchemaContractCommand;
 
 class SchemaContractServiceProvider extends ServiceProvider
 {
@@ -28,5 +29,9 @@ class SchemaContractServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__.'/../config/schema-contract.php' => config_path('schema-contract.php'),
         ], 'schema-contract-config');
+
+        $this->commands([
+            CheckSchemaContractCommand::class,
+        ]);
     }
 }

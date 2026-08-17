@@ -1,36 +1,38 @@
 # Laravel Schema Contract — Implementation Status
 
-> Updated by Phase 9 — Contract Analyzer (2026-08-17).
+> Updated by Phase 10 — Artisan Command (2026-08-17).
 
 ## Current Phase
 
-**Phase 9 — Complete**
+**Phase 10 — Complete**
 
-Next recommended phase: **Phase 10 — Artisan Command** (await explicit maintainer instruction).
+Next recommended phase: **Phase 11 — Configuration and Ignore Controls** (await explicit maintainer instruction).
 
 ## Current State
 
-The package provides **end-to-end programmatic contract analysis** for one or more Eloquent models: model inspection, schema inspection, rule execution, violation collection, and deterministic summaries. CLI rendering and commands are not implemented yet.
+The package ships **`php artisan schema-contract:check`** for discovering and analyzing Eloquent models with human-readable output, structured exit codes, and presentation kept separate from the analyzer core.
 
-### Phase 9 deliverables
+### Phase 10 deliverables
 
-- `ContractAnalyzer` orchestrating model inspection, schema inspection, and rule registry execution
-- `ContractResult` per model with `hasErrors()`, `errors()`, `warnings()`, `infos()`, and `passed()` accessors
-- `AnalysisResult` and `AnalysisSummary` for multi-model analysis with aggregate querying
-- Graceful missing-table handling via structured `schema_table_exists` error violations
-- Configurable `ignoreColumns` support on the analyzer constructor
-- Deterministic ordering of model classes, columns, and violations
-- Integration tests covering valid model, invalid boolean/decimal casts, decimal scale mismatch, JSON warning, valid date/datetime, custom table, missing table, and unknown database type
+- `CheckSchemaContractCommand` (`schema-contract:check`)
+- Discovers all configured models or analyzes a targeted model by FQCN / short class name
+- `ModelClassResolver` with ambiguous/unresolvable model handling (exit code 2)
+- `AnalysisConsoleRenderer` for per-model PASS/ERROR/WARNING output and application summary
+- Exit codes: `0` = no blocking errors, `1` = contract errors, `2` = runtime/config/command failure
+- Warnings alone do not fail the command by default
+- Basic flattening of table-keyed `ignore_columns` config for analyzer use
+- Feature tests for clean run, errors, warnings-only, no models, specific model, invalid input, ambiguous name, and exit codes
+- Unit tests for `ModelClassResolver`
 
-### Quality command results (Phase 9, 2026-08-17)
+### Quality command results (Phase 10, 2026-08-17)
 
 | Command | Result | Notes |
 |---|---|---|
 | `composer validate --strict` | Pass | |
 | `composer lint:check` (Pint) | Pass | |
-| `composer analyse` (PHPStan L7) | Pass | 35 files; `--memory-limit=512M` |
+| `composer analyse` (PHPStan L7) | Pass | 40 files; `--memory-limit=512M` |
 | `composer test:types` | Pass | 100% type coverage |
-| `composer test:unit` | Pass | 232 tests, 625 assertions |
+| `composer test:unit` | Pass | 244 tests, 650+ assertions |
 
 ## Existing Architecture
 
@@ -40,42 +42,41 @@ The package provides **end-to-end programmatic contract analysis** for one or mo
 src/
 ├── Analysis/
 │   └── ContractAnalyzer.php
-├── Compatibility/
-├── Contracts/
+├── Console/
+│   ├── Commands/
+│   │   └── CheckSchemaContractCommand.php
+│   ├── Exceptions/
+│   ├── Rendering/
+│   │   └── AnalysisConsoleRenderer.php
+│   └── Support/
+│       └── ModelClassResolver.php
 ├── Discovery/
 ├── Inspectors/
 ├── Rules/
-├── DTO/
-│   ├── AnalysisResult.php
-│   ├── AnalysisSummary.php
-│   ├── ContractResult.php
-│   └── ContractViolation.php
-└── Support/
+└── SchemaContractServiceProvider.php (registers command)
 ```
 
-### Analysis flow
+### Command flow
 
 ```text
-list<string> model classes
+schema-contract:check {model?}
+        ↓
+EloquentModelDiscoverer (+ optional ModelClassResolver)
         ↓
 ContractAnalyzer::analyzeModels()
         ↓
-per model: ModelInspector → SchemaInspector → RuleRegistry (per column)
-        ↓
-ContractResult[] + AnalysisSummary → AnalysisResult
+AnalysisConsoleRenderer → summary + exit code
 ```
 
-The analyzer is presentation-independent. Phase 10 will render CLI output from `AnalysisResult`.
+Rendering stays in the console layer; `ContractAnalyzer` remains presentation-independent.
 
-### Analyzer behavior
+### Exit code behavior
 
-| Scenario | Behavior |
+| Code | Meaning |
 |---|---|
-| Compatible columns | Increment `passedColumns`; no violations |
-| Rule violations | Collect structured `ContractViolation` records |
-| Missing table | `ContractResult` with error violation; zero columns inspected |
-| Ignored columns | Skipped before rule execution |
-| Multi-model | Sorted model classes; aggregated summary counts |
+| 0 | No contract errors (warnings allowed) |
+| 1 | One or more contract errors |
+| 2 | Invalid/ambiguous model input or unexpected runtime failure |
 
 ## Dependencies
 
@@ -85,11 +86,10 @@ Unchanged from Phase 4.
 
 | Layer | Status |
 |---|---|
-| Integration — contract analyzer | `tests/Integration/Analysis/ContractAnalyzerTest.php` |
-| Unit — DTO accessors | `tests/Unit/DTO/DomainDtoTest.php` |
-| Unit / integration — prior phases | Phases 3–8 |
-
-Fixtures: `tests/Fixtures/Analysis/`
+| Feature — Artisan command | `tests/Feature/Commands/CheckSchemaContractCommandTest.php` |
+| Unit — model resolver | `tests/Unit/Console/ModelClassResolverTest.php` |
+| Integration — analyzer | Phase 9 |
+| Fixtures — command | `tests/Fixtures/Commands/` |
 
 ## CI State
 
@@ -97,40 +97,41 @@ Unchanged from prior phases.
 
 ## Risks
 
-1. **Ignore columns not config-wired yet** — analyzer accepts constructor input; Phase 10/11 can bind `schema-contract.ignore_columns`.
-2. **Missing table uses synthetic rule id** — `schema_table_exists` is analyzer-level, not a `ContractRule` implementation.
-3. **No discovery integration yet** — Phase 10 command will compose discovery + analyzer.
+1. **Ignore columns flattening** — table-specific ignores are flattened globally until Phase 11 hardening.
+2. **Parallel Testbench flakiness** — occasional config bootstrap race on Windows under `--parallel`.
+3. **No strict mode yet** — warnings do not fail CI by design for v0.1.0 default behavior.
 
 ## Conflicts With Master Specification
 
-| Area | Status after Phase 9 |
+| Area | Status after Phase 10 |
 |---|---|
-| Contract analyzer orchestration | Resolved |
-| Programmatic results / summaries | Resolved |
-| Artisan command | Not started — Phase 10 |
-| Config-driven ignores in CLI | Deferred — Phase 11 |
+| Primary Artisan command | Resolved |
+| Exit codes | Resolved |
+| Targeted model analysis | Resolved |
+| Config ignore finalization | Deferred — Phase 11 |
+| JSON/GitHub output formats | Deferred — roadmap |
 
 ## Recommended Changes
 
-### Phase 10 (when requested)
+### Phase 11 (when requested)
 
-`schema-contract:check` command rendering `AnalysisResult` and exit codes.
+Finalize config-driven ignore controls and table-scoped column ignores.
 
 ### Later phases
 
-Phases 11–17 per implementation plan.
+Phases 12–17 per implementation plan.
 
 ## Phase Readiness
 
 | Phase | Status |
 |---|---|
-| 0–8 | Complete |
-| 9 — Contract analyzer | **Complete** |
-| 10 — Artisan command | **Ready to begin** |
-| 11–17 | Blocked — await maintainer instruction |
+| 0–9 | Complete |
+| 10 — Artisan command | **Complete** |
+| 11 — Config / ignores | **Ready to begin** |
+| 12–17 | Blocked — await maintainer instruction |
 
 ---
 
-## Decision: **READY** (for Phase 10)
+## Decision: **READY** (for Phase 11)
 
-Contract analysis is orchestrated, tested end-to-end, and kept separate from CLI rendering. The Artisan command should not begin until Phase 10 is explicitly requested.
+The primary command is implemented, tested, and separated from analyzer logic. Configuration hardening should not begin until Phase 11 is explicitly requested.

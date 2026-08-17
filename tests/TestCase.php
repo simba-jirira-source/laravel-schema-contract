@@ -90,4 +90,30 @@ abstract class TestCase extends Orchestra
             $table->string('code');
         });
     }
+
+    protected function createCommandCheckTables(): void
+    {
+        Schema::create('command_check_profiles', function (Blueprint $table): void {
+            $table->id();
+            $table->boolean('active')->default(true);
+            $table->decimal('price', 10, 2)->nullable();
+            $table->json('payload')->nullable();
+            $table->date('starts_on')->nullable();
+            $table->dateTime('published_at')->nullable();
+            $table->timestamps();
+        });
+    }
+
+    protected function commandFixturePath(): string
+    {
+        return __DIR__.'/Fixtures/Commands';
+    }
+
+    protected function configureCommandDiscovery(array $extraPaths = []): void
+    {
+        $this->app['config']->set('schema-contract.model_paths', array_merge(
+            [$this->commandFixturePath()],
+            $extraPaths,
+        ));
+    }
 }
