@@ -8,7 +8,6 @@ use Illuminate\Contracts\Database\Eloquent\Castable;
 use Illuminate\Contracts\Database\Eloquent\CastsAttributes;
 use SimbaJirira\SchemaContract\DTO\CastDefinition;
 use SimbaJirira\SchemaContract\Enums\CastType;
-use UnitEnum;
 
 final class CastNormalizer
 {
@@ -96,7 +95,7 @@ final class CastNormalizer
     {
         $originalExpression ??= $class;
 
-        if (enum_exists($class) && is_subclass_of($class, UnitEnum::class)) {
+        if (enum_exists($class)) {
             return new CastDefinition(
                 column: $column,
                 type: CastType::Enum,
