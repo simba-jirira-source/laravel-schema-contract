@@ -1,38 +1,40 @@
 # Laravel Schema Contract — Implementation Status
 
-> Updated by Phase 7 — Compatibility Engine (2026-08-17).
+> Updated by Phase 8 — Contract Rules (2026-08-17).
 
 ## Current Phase
 
-**Phase 7 — Complete**
+**Phase 8 — Complete**
 
-Next recommended phase: **Phase 8 — Contract Rules** (await explicit maintainer instruction).
+Next recommended phase: **Phase 9 — Contract Analyzer** (await explicit maintainer instruction).
 
 ## Current State
 
-The package can **discover models**, **inspect/normalize casts and schema metadata**, and **evaluate centralized type compatibility** between normalized column and cast types. Contract rules, analyzer orchestration, and commands are not implemented yet.
+The package can **discover models**, **inspect/normalize casts and schema**, **evaluate type compatibility**, and **execute contract rules** that return structured `ContractViolation` records. Analyzer orchestration and commands are not implemented yet.
 
-### Phase 7 deliverables
+### Phase 8 deliverables
 
-- `CompatibilityState` enum (`compatible`, `incompatible`, `uncertain`)
-- `CompatibilityResult` DTO with state, reason, suggested severity, suggested cast, and optional scale metadata
-- `TypeCompatibilityMatrix` centralized compatibility service in `src/Compatibility/`
-- Master-spec matrix coverage for boolean, integer family, decimal, float/double, string/text, date/datetime/timestamp, JSON, UUID, and enum columns
-- Conservative no-cast handling (JSON warns; string/text/uuid pass; binary uncertain)
-- Custom-cast and unknown-type cases return `Uncertain` without crashing
-- Decimal scale mismatch detection when both database and cast expose scale
-- Suggested cast generation for incompatible pairings (e.g. `decimal:2`, `array`)
-- Matrix-style Pest unit tests for valid, invalid, uncertain, no-cast, custom, and unknown combinations
+- `ContractRule` contract with `identifier()` and `analyze(ModelDefinition, ColumnDefinition)`
+- `RuleRegistry` with built-in defaults and optional rule registration
+- `ViolationFactory` for consistent violation metadata from compatibility results
+- Extended `ContractViolation` with `rule`, `table`, `connection`, and `modelCast` fields
+- Initial rules:
+  - `CastMatchesColumnTypeRule` — general type compatibility via `TypeCompatibilityMatrix`
+  - `DecimalScaleMatchesRule` — decimal scale mismatch when both sides expose scale
+  - `JsonColumnHasCompatibleCastRule` — JSON cast recommendations and incompatible cast errors
+  - `DateColumnHasCompatibleCastRule` — date/datetime/timestamp compatibility; skips `created_at`/`updated_at`
+- Conservative false-positive policy: `Info`-level uncertain cases (custom casts) emit no violation from general rules; JSON without cast warns; unknown database types warn
+- Independent Pest tests per rule plus registry tests
 
-### Quality command results (Phase 7, 2026-08-17)
+### Quality command results (Phase 8, 2026-08-17)
 
 | Command | Result | Notes |
 |---|---|---|
 | `composer validate --strict` | Pass | |
 | `composer lint:check` (Pint) | Pass | |
-| `composer analyse` (PHPStan L7) | Pass | 24 files; `--memory-limit=512M` |
+| `composer analyse` (PHPStan L7) | Pass | 31 files; `--memory-limit=512M` |
 | `composer test:types` | Pass | 100% type coverage |
-| `composer test:unit` | Pass | 189 tests, 484 assertions |
+| `composer test:unit` | Pass | 218 tests, 561 assertions |
 
 ## Existing Architecture
 
@@ -40,68 +42,61 @@ The package can **discover models**, **inspect/normalize casts and schema metada
 
 ```text
 src/
-├── SchemaContractServiceProvider.php
 ├── Compatibility/
 │   └── TypeCompatibilityMatrix.php
 ├── Contracts/
+│   ├── ContractRule.php
 │   ├── ModelDiscoverer.php
 │   ├── ModelInspector.php
 │   └── SchemaInspector.php
-├── Discovery/
-│   └── EloquentModelDiscoverer.php
-├── Exceptions/
-│   └── MissingTableException.php
-├── Inspectors/
-│   ├── EloquentModelInspector.php
-│   └── EloquentSchemaInspector.php
+├── Rules/
+│   ├── CastMatchesColumnTypeRule.php
+│   ├── DateColumnHasCompatibleCastRule.php
+│   ├── DecimalScaleMatchesRule.php
+│   ├── JsonColumnHasCompatibleCastRule.php
+│   ├── RuleRegistry.php
+│   └── Support/
+│       └── ViolationFactory.php
 ├── DTO/
-│   ├── CompatibilityResult.php
-│   └── ...
-├── Enums/
-│   ├── CompatibilityState.php
-│   └── ...
-└── Support/
+│   └── ContractViolation.php (extended)
+└── ...
 ```
 
-### Compatibility flow
+### Rule execution flow
 
 ```text
-ColumnDefinition + optional CastDefinition
+ModelDefinition + ColumnDefinition
         ↓
-TypeCompatibilityMatrix::compare()
+RuleRegistry::analyze() / ContractRule::analyze()
         ↓
-CompatibilityResult (state, reason, severity, suggested cast)
+TypeCompatibilityMatrix (where applicable)
+        ↓
+list<ContractViolation>
 ```
 
-The matrix is presentation-independent. Phase 8 rules will consume it to emit `ContractViolation` records.
+Rules return structured violations only — no CLI rendering.
 
-### Compatibility behavior
+### Rule responsibilities
 
-| Scenario | State | Suggested severity |
+| Rule | Scope | Typical severity |
 |---|---|---|
-| Spec-valid cast pairing | `Compatible` | — |
-| Spec-invalid cast pairing | `Incompatible` | `Error` |
-| Decimal scale mismatch (both known) | `Incompatible` | `Error` |
-| JSON column, no cast | `Uncertain` | `Warning` |
-| String/text/uuid, no cast | `Compatible` | — |
-| Unknown database type | `Uncertain` | `Warning` |
-| Custom cast | `Uncertain` | `Info` |
-| Unrecognized cast expression | `Uncertain` | `Warning` |
-| Binary column | `Uncertain` | `Info` |
+| `cast_matches_column_type` | Non-JSON, non-date/time columns; defers decimal scale | `Error` / `Warning` |
+| `decimal_scale_matches` | Decimal column + decimal cast with known scales | `Error` |
+| `json_column_has_compatible_cast` | JSON columns only | `Warning` (no cast) / `Error` (wrong cast) |
+| `date_column_has_compatible_cast` | Date/datetime/timestamp (except standard timestamps) | `Error` |
 
 ## Dependencies
 
-Unchanged from Phase 4 (`illuminate/database`, `illuminate/support`).
+Unchanged from Phase 4.
 
 ## Testing State
 
 | Layer | Status |
 |---|---|
-| Unit — compatibility matrix | `tests/Unit/Compatibility/TypeCompatibilityMatrixTest.php` |
-| Unit — compatibility enum | `tests/Unit/Enums/CompatibilityStateTest.php` |
-| Unit — DTO | `CompatibilityResult` covered in `DomainDtoTest.php` |
-| Integration — schema inspector | Phase 6 |
-| Feature — discovery / model inspector | Phases 4–5 |
+| Unit — each contract rule | `tests/Unit/Rules/*RuleTest.php` |
+| Unit — rule registry | `tests/Unit/Rules/RuleRegistryTest.php` |
+| Unit — compatibility matrix | Phase 7 |
+| Test fixtures | `tests/Support/RuleTestFixtures.php` |
 
 ## CI State
 
@@ -109,41 +104,41 @@ Unchanged from prior phases.
 
 ## Risks
 
-1. **Binary columns** — treated as uncertain because the master spec does not define a strict cast mapping.
-2. **No-cast numeric/date columns** — intentionally pass to avoid false positives; JSON without cast warns per spec.
-3. **Matrix not wired to rules yet** — Phase 8 will translate results into structured violations.
+1. **Rule overlap** — specialized rules own JSON/date/decimal-scale cases; general rule defers to avoid duplicate violations.
+2. **Custom casts** — intentionally produce no blocking violations; compatibility cannot be verified automatically.
+3. **Rules not wired to analyzer yet** — Phase 9 will orchestrate inspection + rule execution.
 
 ## Conflicts With Master Specification
 
-| Area | Status after Phase 7 |
+| Area | Status after Phase 8 |
 |---|---|
-| Centralized compatibility | Resolved |
-| Conservative false-positive policy | Resolved |
-| Decimal scale detection | Resolved (when metadata available) |
-| Contract rules | Not started — Phase 8 |
+| Contract rules + registry | Resolved |
+| Structured violations | Resolved |
+| JSON / date / decimal rules | Resolved |
+| Contract analyzer | Not started — Phase 9 |
 | Primary command | Deferred — Phase 10 |
 
 ## Recommended Changes
 
-### Phase 8 (when requested)
+### Phase 9 (when requested)
 
-Contract rule contract/registry consuming `TypeCompatibilityMatrix` for violations.
+Presentation-independent analyzer orchestrating discovery, inspection, and rule execution.
 
 ### Later phases
 
-Phases 9–17 per implementation plan.
+Phases 10–17 per implementation plan.
 
 ## Phase Readiness
 
 | Phase | Status |
 |---|---|
-| 0–6 | Complete |
-| 7 — Compatibility engine | **Complete** |
-| 8 — Contract rules | **Ready to begin** |
-| 9–17 | Blocked — await maintainer instruction |
+| 0–7 | Complete |
+| 8 — Contract rules | **Complete** |
+| 9 — Contract analyzer | **Ready to begin** |
+| 10–17 | Blocked — await maintainer instruction |
 
 ---
 
-## Decision: **READY** (for Phase 8)
+## Decision: **READY** (for Phase 9)
 
-Type compatibility is centralized, tested, and kept separate from rule orchestration and CLI output. Contract rules should not begin until Phase 8 is explicitly requested.
+Contract rules are implemented, tested independently, and kept separate from analyzer orchestration and CLI output. The contract analyzer should not begin until Phase 9 is explicitly requested.

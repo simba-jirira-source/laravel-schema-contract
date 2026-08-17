@@ -117,18 +117,26 @@ it('builds a model definition with keyed cast definitions', function () {
 it('builds a contract violation with severity and scale metadata', function () {
     $violation = new ContractViolation(
         severity: Severity::Error,
+        rule: 'cast_matches_column_type',
         modelClass: 'App\\Models\\User',
+        table: 'users',
+        connection: 'mysql',
         column: 'credit_limit',
         message: 'Cast type integer is incompatible with database decimal(10,2).',
         suggestedCast: 'decimal:2',
         databaseType: DatabaseType::Decimal,
         castType: CastType::Integer,
+        modelCast: 'integer',
         databasePrecision: 10,
         databaseScale: 2,
     );
 
     expect($violation->severity)->toBe(Severity::Error);
+    expect($violation->rule)->toBe('cast_matches_column_type');
+    expect($violation->table)->toBe('users');
+    expect($violation->connection)->toBe('mysql');
     expect($violation->column)->toBe('credit_limit');
+    expect($violation->modelCast)->toBe('integer');
     expect($violation->suggestedCast)->toBe('decimal:2');
     expect($violation->databaseType)->toBe(DatabaseType::Decimal);
     expect($violation->castType)->toBe(CastType::Integer);
@@ -140,7 +148,10 @@ it('builds a contract violation with severity and scale metadata', function () {
 it('builds a warning violation for missing json cast metadata', function () {
     $violation = new ContractViolation(
         severity: Severity::Warning,
+        rule: 'json_column_has_compatible_cast',
         modelClass: 'App\\Models\\User',
+        table: 'users',
+        connection: 'mysql',
         column: 'preferences',
         message: 'JSON column has no compatible cast.',
         suggestedCast: 'array',
