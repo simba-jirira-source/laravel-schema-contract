@@ -18,9 +18,9 @@ The package reads schema metadata through Laravel's `Schema::getColumns()` API a
 
 Driver-specific enrichment is isolated in:
 
-- `Support\Database.DriverColumnMetadataEnricher` — adjusts raw metadata per driver
-- `Support.ColumnTypeParser` — parses precision, scale, and length from driver type strings
-- `Support.DatabaseColumnNormalizer` — maps normalized driver types to `DatabaseType`
+- `SimbaJirira\SchemaContract\Support\Database\DriverColumnMetadataEnricher` — adjusts raw metadata per driver
+- `SimbaJirira\SchemaContract\Support\ColumnTypeParser` — parses precision, scale, and length from driver type strings
+- `SimbaJirira\SchemaContract\Support\DatabaseColumnNormalizer` — maps normalized driver types to `DatabaseType`
 
 Unknown or incomplete metadata maps to `DatabaseType::Unknown` and produces conservative warnings rather than hard failures.
 

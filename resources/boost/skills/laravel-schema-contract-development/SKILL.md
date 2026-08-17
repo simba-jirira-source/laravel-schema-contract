@@ -1,7 +1,7 @@
 ---
 name: laravel-schema-contract-development
 description: >
-  Configure and run Laravel Schema Contract v0.1 checks for database schema ↔ Eloquent cast compatibility in Laravel 13+ applications.
+  Configure and run Laravel Schema Contract v0.1 checks for database schema ↔ Eloquent cast compatibility in Laravel 13.x applications.
 license: MIT
 metadata:
   author: simba-jirira-source
@@ -19,7 +19,7 @@ Install and run `simba-jirira-source/laravel-schema-contract` with the smallest 
 
 ### 1. Confirm prerequisites
 
-- Laravel 13+ and PHP 8.3+
+- Laravel 13.x and PHP 8.3+
 - Database migrated and reachable for models under analysis
 - Models live under configurable discovery paths (default `app/Models`)
 

@@ -26,7 +26,7 @@ The analyzer is read-only. It never mutates schema, models, or application data.
 ## Requirements
 
 - PHP 8.3+
-- Laravel 13+
+- Laravel 13.x
 - Composer 2+
 - A reachable database connection for the models being analyzed
 
@@ -68,7 +68,7 @@ Short class names work when they resolve to exactly one discovered model.
 
 ## Example output
 
-Given a `users` table with a boolean `active` column, a decimal `credit_limit`, and a JSON `preferences` column, and a model that casts `credit_limit` to `integer` while leaving `preferences` uncased:
+Given a `users` table with a boolean `active` column, a decimal `credit_limit`, and a JSON `preferences` column, and a model that casts `credit_limit` to `integer` while leaving `preferences` uncast:
 
 ```text
 App\Models\User
@@ -220,7 +220,7 @@ vendor/bin/pest
 
 **Not implemented in v0.1.0** (planned for later releases):
 
-- FormRequest validation analysis
+- Database ↔ Validation (FormRequest validation analysis)
 - API Resource analysis
 - Livewire analysis
 - Baseline generation and suppressions
@@ -250,7 +250,7 @@ vendor/bin/pest
 | v0.9 | Public extension API |
 | v1.0 | Stable public API |
 
-Each release is intended to be independently useful. See [docs/MASTER_SPEC.md](docs/MASTER_SPEC.md) for the full product specification.
+Each release is intended to be independently useful. See the [product specification](https://github.com/simba-jirira-source/laravel-schema-contract/blob/main/docs/MASTER_SPEC.md) for the full scope and roadmap.
 
 ## Testing
 
@@ -287,13 +287,13 @@ SQLite tests run in the default suite. MySQL and PostgreSQL grouped tests requir
 
 ## Contributing
 
-Please see [.github/CONTRIBUTING.md](.github/CONTRIBUTING.md). For significant changes, open an issue first.
+Please see [CONTRIBUTING.md](https://github.com/simba-jirira-source/laravel-schema-contract/blob/main/.github/CONTRIBUTING.md). For significant changes, open an issue first.
 
 ## Security
 
 The analyzer may include model names, table names, column names, and type metadata in output. It does not dump application records.
 
-Please review [.github/SECURITY.md](.github/SECURITY.md) for vulnerability reporting.
+Please review [SECURITY.md](https://github.com/simba-jirira-source/laravel-schema-contract/blob/main/.github/SECURITY.md) for vulnerability reporting.
 
 ## License
 
