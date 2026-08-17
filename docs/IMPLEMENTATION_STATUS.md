@@ -1,90 +1,122 @@
 # Laravel Schema Contract — Implementation Status
 
-> Updated by Phase 15 — README and Documentation (2026-08-17).
+> Updated by Phase 16 — v0.1.0 Release-Readiness Audit (2026-08-17).
 
 ## Current Phase
 
-**Phase 15 — Complete**
+**Phase 16 — Complete**
 
-Next recommended phase: **Phase 16 — v0.1.0 Release-Readiness Audit** (await explicit maintainer instruction).
+Next recommended phase: **Phase 17 — Post-v0.1 Architecture Review** (await explicit maintainer instruction).
 
-## Current State
+## Release-Readiness Verdict
 
-v0.1.0 functionality is documented in `README.md` with supporting driver documentation in `docs/DATABASE_SUPPORT.md`. The bundled Boost skill reflects the public integration surface. Documentation describes only implemented behavior; roadmap items are clearly labelled as planned.
+**READY FOR v0.1.0 RELEASE CANDIDATE**
 
-### Phase 15 deliverables
+The repository satisfies the master specification definition of done for v0.1.0. All local quality checks pass. No release-blocking defects were found in package behavior, tests, documentation, or packaging.
 
-- Comprehensive `README.md` covering purpose, requirements, installation (`--dev`), quick start, commands, example output, configuration, supported databases/types, CI usage, limitations, roadmap, testing, contributing, security, and license
-- Updated `resources/boost/skills/laravel-schema-contract-development/SKILL.md` aligned with README and actual publish tags/commands
-- Expanded `.github/CONTRIBUTING.md` with static analysis, type coverage, and driver test references
-- Resolved package identity across authoritative docs: canonical Composer name `simba-jirira-source/laravel-schema-contract` (namespace remains `SimbaJirira\SchemaContract`)
-- Verified documentation against implemented commands, config keys, publish tag (`schema-contract-config`), exit codes, and CI workflows
+**Maintainer actions still required (not performed in this phase):**
 
-### Documentation accuracy notes
+- Create and push Git tag `v0.1.0`
+- Create GitHub Release
+- Publish to Packagist (if applicable)
+- Confirm GitHub Actions workflows are green on the release branch
 
-- Canonical Composer package name: `simba-jirira-source/laravel-schema-contract` (matches `composer.json`, Packagist, `docs/MASTER_SPEC.md`, and `.cursor/rules/schema-contract.mdc`)
-- Recommended install: `composer require simba-jirira-source/laravel-schema-contract --dev`
-- Primary command: `php artisan schema-contract:check`
-- Only configuration publishing is implemented; README does not reference migrations, views, translations, or assets publish tags
-- FormRequest, API Resource, Livewire, baseline, JSON/GitHub output, and automatic fixes are documented as **not implemented**
+No tag, release, publish, or branch merge was performed.
 
-### Quality command results (Phase 15, 2026-08-17)
+## Definition of Done Audit (v0.1.0)
+
+| Criterion | Result | Evidence |
+|---|---|---|
+| Installs into Laravel 13+ | Pass | `composer.json` requires `illuminate/* ^13.0`, PHP `^8.3` |
+| Package auto-discovery | Pass | `PackageFoundationTest`, service provider `extra.laravel` |
+| Model discovery | Pass | `EloquentModelDiscovererTest` |
+| Custom table names | Pass | Inspector and integration tests |
+| Custom connections respected | Pass | Schema inspector tests |
+| Casts inspected | Pass | `EloquentModelInspectorTest`, `CastNormalizerTest` |
+| Database columns inspected | Pass | `EloquentSchemaInspectorTest`, driver compatibility tests |
+| Types normalized | Pass | Normalizer unit tests |
+| Compatibility checks work | Pass | `TypeCompatibilityMatrixTest`, rule tests |
+| Decimal mismatches detected | Pass | `DecimalScaleMatchesRuleTest`, analyzer integration |
+| Boolean mismatches detected | Pass | Command and rule tests |
+| JSON compatibility handled | Pass | `JsonColumnHasCompatibleCastRule`, command warning test |
+| Date compatibility handled | Pass | `DateColumnHasCompatibleCastRule` |
+| Unsupported types degrade gracefully | Pass | Unknown type handling in compatibility matrix |
+| Errors/warnings distinguished | Pass | Severity enum, command exit code tests |
+| Command output readable | Pass | `AnalysisConsoleRenderer`, command feature tests |
+| CI exit codes work | Pass | `CheckSchemaContractCommandTest` |
+| Configuration/ignores work | Pass | `SchemaContractConfigurationTest` |
+| Tests pass | Pass | 282 passed, 6 skipped (driver groups) |
+| Pint passes | Pass | `composer lint:check` |
+| Static analysis passes | Pass | PHPStan L8 + Larastan, 44 files |
+| CI configured | Pass | `tests.yml`, `database-compatibility.yml` |
+| README accurate | Pass | Phase 15 documentation audit |
+| CHANGELOG ready | Pass | Keep a Changelog `[Unreleased]` + `[0.1.0]` |
+| No automatic release | Pass | No tag, release, or publish performed |
+
+## Phase 16 deliverables
+
+- Full repository audit against `docs/MASTER_SPEC.md` definition of done
+- Complete local quality suite executed successfully
+- `CHANGELOG.md` updated with Keep a Changelog format and v0.1.0 release notes
+- Packaging tightened: `composer.json` support metadata, reliable `composer test` gate (serial Pest + `@prepare`), `.gitattributes` export-ignore for dev-only paths, removed skeleton `public/.gitkeep`
+- Release-readiness verdict recorded
+
+### Quality command results (Phase 16, 2026-08-17)
 
 | Command | Result | Notes |
 |---|---|---|
-| `composer check:composer` | Pass | |
-| `composer analyse` | Pass | 44 files |
-| `composer lint:check` | Pass | |
-| `composer test:types` | Pass | 100% type coverage |
-| `vendor/bin/pest` | Pass | serial |
-| `composer test:unit` | Pass | parallel |
+| `composer test` | Pass | Serial Pest after `@prepare`; release gate |
+| `composer test:unit` | Pass | Parallel Pest (optional) |
+| `vendor/bin/pest` | Pass | Serial |
+| `composer check:composer` | Pass | Includes strict validation after `support` metadata added |
 
-## Existing Architecture
+## Public API (v0.1.0)
 
-Unchanged from Phase 14.
+**Consumer-facing:**
 
-## Dependencies
+- `php artisan schema-contract:check` — primary CLI entry point
+- Publish tag `schema-contract-config`
+- Config keys: `model_paths`, `ignore_models`, `ignore_columns`
 
-Unchanged from Phase 14.
+**Programmatic (stable enough for v0.1, not yet a documented extension API):**
 
-## Testing State
+- `ContractAnalyzer` + `RuleRegistry::withDefaults()`
+- Inspector and discovery classes behind contracts
 
-Unchanged from Phase 14. README documents local and CI test commands.
+No facade, no documented third-party rule registration API in v0.1.0.
 
-## CI State
+## Packaging Review
 
-Unchanged from Phase 14. README documents `tests.yml` and `database-compatibility.yml` usage for consumers.
+| Item | Status |
+|---|---|
+| Composer name | `simba-jirira-source/laravel-schema-contract` |
+| Namespace | `SimbaJirira\SchemaContract` |
+| License | MIT (`LICENSE.md`) |
+| Autoload | PSR-4 `src/` + `config/` |
+| Export-ignore | Tests, CI, workbench, dev docs, testbench config excluded from dist |
+| Skeleton artifacts | Removed `public/.gitkeep`; no migrations, views, translations, or routes shipped |
 
-## Risks
+## Known Limitations (accepted for v0.1.0)
 
-1. **Example output** — README example follows renderer format and master spec; exact suggested-cast strings depend on compatibility matrix output for each column.
-2. **Phase 14 CI confirmation** — documentation assumes remediated workflows; final green CI should be confirmed before release audit.
+- MySQL/PostgreSQL full-suite integration requires CI services or local env vars; 6 tests skip locally without driver config
+- PostgreSQL native enums and extension types may map to `unknown`
+- SQLite integer size distinctions not available in schema metadata
+- FormRequest, API Resource, Livewire, baselines, JSON/GitHub output, and automatic fixes are roadmap only
+- GitHub Actions green status should be confirmed on the release branch before tagging
 
 ## Conflicts With Master Specification
 
-None for Phase 15 scope. Package identity is aligned across `composer.json`, master spec, cursor rules, and README.
-
-## Recommended Changes
-
-### Phase 16 (when requested)
-
-Full v0.1.0 release-readiness audit, CHANGELOG preparation, quality suite verification. No tags or releases without explicit maintainer instruction.
-
-### Later phases
-
-Phase 17 post-v0.1 architecture review per implementation plan.
+None identified. v0.1.0 scope matches the narrowed Database ↔ Eloquent product promise.
 
 ## Phase Readiness
 
 | Phase | Status |
 |---|---|
-| 0–14 | Complete |
-| 15 — README / docs | **Complete** |
-| 16 — Release-readiness audit | **Ready to begin** |
-| 17 — Post-v0.1 review | Blocked — await maintainer instruction |
+| 0–16 | Complete |
+| 17 — Post-v0.1 review | **Ready to begin** |
 
 ---
 
-## Decision: **READY** (for Phase 16)
+## Decision: **RELEASE CANDIDATE READY**
 
-Documentation accurately describes v0.1.0 scope. Release-readiness audit should not begin until Phase 16 is explicitly requested.
+v0.1.0 is ready for maintainer-led tagging and release. Phase 17 architecture review should not begin until explicitly requested.

@@ -13,6 +13,10 @@
         "laravel-schema-contract"
     ],
     "homepage": "https://github.com/simba-jirira-source/laravel-schema-contract",
+    "support": {
+        "issues": "https://github.com/simba-jirira-source/laravel-schema-contract/issues",
+        "source": "https://github.com/simba-jirira-source/laravel-schema-contract"
+    },
     "license": "MIT",
     "authors": [
         {
@@ -85,7 +89,8 @@
             "@analyse",
             "@lint:check",
             "@test:types",
-            "@test:unit"
+            "@prepare",
+            "vendor/bin/pest"
         ],
         "check:composer": [
             "composer validate --strict"

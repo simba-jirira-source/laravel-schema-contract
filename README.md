@@ -275,9 +275,11 @@ composer check:composer   # composer validate --strict
 composer analyse          # PHPStan level 8 + Larastan
 composer lint:check       # Laravel Pint
 composer test:types       # Pest type coverage (100% minimum)
-composer test:unit        # Pest parallel
+composer test:unit        # Pest parallel (optional smoke)
 vendor/bin/pest           # Pest serial
 ```
+
+`composer test` runs the release gate with serial Pest for reliable Testbench bootstrapping.
 
 ### Driver integration tests
 
