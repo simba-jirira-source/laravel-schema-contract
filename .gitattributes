@@ -14,3 +14,9 @@
 /CLAUDE.md          export-ignore
 /AGENTS.md          export-ignore
 /AGENTS_PACKAGE.md  export-ignore
+/testbench.yaml     export-ignore
+/public             export-ignore
+/.cursor            export-ignore
+/docs/IMPLEMENTATION_PLAN.md   export-ignore
+/docs/IMPLEMENTATION_STATUS.md export-ignore
+/docs/MASTER_SPEC.md            export-ignore

@@ -1,13 +1,22 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
     "name": "simba-jirira-source/laravel-schema-contract",
-    "description": "",
+    "description": "Detect inconsistencies between Laravel database schema metadata and Eloquent model casts.",
     "keywords": [
         "laravel",
+        "eloquent",
+        "schema",
+        "database",
+        "casts",
+        "contract",
         "simba-jirira-source",
         "laravel-schema-contract"
     ],
     "homepage": "https://github.com/simba-jirira-source/laravel-schema-contract",
+    "support": {
+        "issues": "https://github.com/simba-jirira-source/laravel-schema-contract/issues",
+        "source": "https://github.com/simba-jirira-source/laravel-schema-contract"
+    },
     "license": "MIT",
     "authors": [
         {
@@ -18,16 +27,14 @@
     ],
     "require": {
         "php": "^8.3",
-        "illuminate/support": "^12.0||^13.0"
+        "illuminate/console": "^13.0",
+        "illuminate/database": "^13.0",
+        "illuminate/support": "^13.0"
     },
     "require-dev": {
         "larastan/larastan": "^3.9",
-        "laravel/agent-detector": "^2.0",
-        "laravel/chisel": "^0.1",
         "laravel/pint": "^1.29",
-        "laravel/prompts": "^0.3",
-        "laravel/pao": "^1.0",
-        "orchestra/testbench": "^10.0||^11.0",
+        "orchestra/testbench": "^11.0",
         "pestphp/pest": "^4.6||^5.0",
         "pestphp/pest-plugin-laravel": "^4.1||^5.0",
         "pestphp/pest-plugin-type-coverage": "^4.0||^5.0",
@@ -35,12 +42,12 @@
     },
     "autoload": {
         "psr-4": {
-            "LaravelSchemaContract\\LaravelSchemaContract\\": "src/"
+            "SimbaJirira\\SchemaContract\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "LaravelSchemaContract\\LaravelSchemaContract\\Tests\\": "tests/",
+            "SimbaJirira\\SchemaContract\\Tests\\": "tests/",
             "Workbench\\App\\": "workbench/app/",
             "Workbench\\Database\\Factories\\": "workbench/database/factories/",
             "Workbench\\Database\\Seeders\\": "workbench/database/seeders/"
@@ -69,7 +76,7 @@
             "vendor/bin/pint --parallel --test"
         ],
         "analyse": [
-            "vendor/bin/phpstan analyse"
+            "vendor/bin/phpstan analyse --memory-limit=512M"
         ],
         "test:types": [
             "vendor/bin/pest --type-coverage --min=100"
@@ -78,10 +85,15 @@
             "vendor/bin/pest --parallel"
         ],
         "test": [
+            "@check:composer",
             "@analyse",
             "@lint:check",
             "@test:types",
-            "@test:unit"
+            "@prepare",
+            "vendor/bin/pest"
+        ],
+        "check:composer": [
+            "composer validate --strict"
         ],
         "clear": [
             "@php vendor/bin/testbench package:purge-skeleton --ansi"
@@ -90,11 +102,8 @@
     "extra": {
         "laravel": {
             "providers": [
-                "LaravelSchemaContract\\LaravelSchemaContract\\LaravelSchemaContractServiceProvider"
-            ],
-            "aliases": {
-                "LaravelSchemaContract": "LaravelSchemaContract\\LaravelSchemaContract\\Facades\\LaravelSchemaContract"
-            }
+                "SimbaJirira\\SchemaContract\\SchemaContractServiceProvider"
+            ]
         }
     },
     "config": {

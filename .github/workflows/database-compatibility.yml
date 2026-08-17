@@ -1,0 +1,140 @@
+name: database-compatibility
+
+on:
+  push:
+    branches:
+      - main
+      - development
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mysql-compatibility:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_DATABASE: schema_contract
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    name: MySQL compatibility
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: '8.4'
+          extensions: dom, curl, libxml, mbstring, zip, fileinfo, sqlite, pdo_sqlite, pdo_mysql, bcmath, intl
+          ini-values: error_reporting=E_ALL
+          tools: composer:v2
+          coverage: none
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-db-mysql-php-8.4-${{ hashFiles('composer.json', 'composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-db-mysql-php-8.4-
+
+      - name: Install dependencies
+        run: |
+          composer update --prefer-stable --prefer-dist --no-interaction --no-progress
+          composer run prepare
+
+      - name: Validate Composer configuration
+        run: composer check:composer
+
+      - name: MySQL driver integration tests
+        env:
+          SCHEMA_CONTRACT_DB_DRIVER: mysql
+          SCHEMA_CONTRACT_MYSQL_HOST: 127.0.0.1
+          SCHEMA_CONTRACT_MYSQL_PORT: 3306
+          SCHEMA_CONTRACT_MYSQL_DATABASE: schema_contract
+          SCHEMA_CONTRACT_MYSQL_USERNAME: root
+          SCHEMA_CONTRACT_MYSQL_PASSWORD: ''
+        run: vendor/bin/pest --group=mysql
+
+  pgsql-compatibility:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: schema_contract
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    name: PostgreSQL compatibility
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: '8.4'
+          extensions: dom, curl, libxml, mbstring, zip, fileinfo, sqlite, pdo_sqlite, pdo_pgsql, bcmath, intl
+          ini-values: error_reporting=E_ALL
+          tools: composer:v2
+          coverage: none
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-db-pgsql-php-8.4-${{ hashFiles('composer.json', 'composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-db-pgsql-php-8.4-
+
+      - name: Install dependencies
+        run: |
+          composer update --prefer-stable --prefer-dist --no-interaction --no-progress
+          composer run prepare
+
+      - name: Validate Composer configuration
+        run: composer check:composer
+
+      - name: PostgreSQL driver integration tests
+        env:
+          SCHEMA_CONTRACT_DB_DRIVER: pgsql
+          SCHEMA_CONTRACT_PGSQL_HOST: 127.0.0.1
+          SCHEMA_CONTRACT_PGSQL_PORT: 5432
+          SCHEMA_CONTRACT_PGSQL_DATABASE: schema_contract
+          SCHEMA_CONTRACT_PGSQL_USERNAME: postgres
+          SCHEMA_CONTRACT_PGSQL_PASSWORD: postgres
+        run: vendor/bin/pest --group=pgsql
