@@ -72,4 +72,22 @@ abstract class TestCase extends Orchestra
             $table->string('name');
         });
     }
+
+    protected function createAnalyzerTables(): void
+    {
+        Schema::create('analyzer_profiles', function (Blueprint $table): void {
+            $table->id();
+            $table->boolean('active')->default(true);
+            $table->decimal('price', 10, 2)->nullable();
+            $table->json('payload')->nullable();
+            $table->date('starts_on')->nullable();
+            $table->dateTime('published_at')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('legacy_profiles', function (Blueprint $table): void {
+            $table->id();
+            $table->string('code');
+        });
+    }
 }

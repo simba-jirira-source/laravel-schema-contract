@@ -1,40 +1,36 @@
 # Laravel Schema Contract — Implementation Status
 
-> Updated by Phase 8 — Contract Rules (2026-08-17).
+> Updated by Phase 9 — Contract Analyzer (2026-08-17).
 
 ## Current Phase
 
-**Phase 8 — Complete**
+**Phase 9 — Complete**
 
-Next recommended phase: **Phase 9 — Contract Analyzer** (await explicit maintainer instruction).
+Next recommended phase: **Phase 10 — Artisan Command** (await explicit maintainer instruction).
 
 ## Current State
 
-The package can **discover models**, **inspect/normalize casts and schema**, **evaluate type compatibility**, and **execute contract rules** that return structured `ContractViolation` records. Analyzer orchestration and commands are not implemented yet.
+The package provides **end-to-end programmatic contract analysis** for one or more Eloquent models: model inspection, schema inspection, rule execution, violation collection, and deterministic summaries. CLI rendering and commands are not implemented yet.
 
-### Phase 8 deliverables
+### Phase 9 deliverables
 
-- `ContractRule` contract with `identifier()` and `analyze(ModelDefinition, ColumnDefinition)`
-- `RuleRegistry` with built-in defaults and optional rule registration
-- `ViolationFactory` for consistent violation metadata from compatibility results
-- Extended `ContractViolation` with `rule`, `table`, `connection`, and `modelCast` fields
-- Initial rules:
-  - `CastMatchesColumnTypeRule` — general type compatibility via `TypeCompatibilityMatrix`
-  - `DecimalScaleMatchesRule` — decimal scale mismatch when both sides expose scale
-  - `JsonColumnHasCompatibleCastRule` — JSON cast recommendations and incompatible cast errors
-  - `DateColumnHasCompatibleCastRule` — date/datetime/timestamp compatibility; skips `created_at`/`updated_at`
-- Conservative false-positive policy: `Info`-level uncertain cases (custom casts) emit no violation from general rules; JSON without cast warns; unknown database types warn
-- Independent Pest tests per rule plus registry tests
+- `ContractAnalyzer` orchestrating model inspection, schema inspection, and rule registry execution
+- `ContractResult` per model with `hasErrors()`, `errors()`, `warnings()`, `infos()`, and `passed()` accessors
+- `AnalysisResult` and `AnalysisSummary` for multi-model analysis with aggregate querying
+- Graceful missing-table handling via structured `schema_table_exists` error violations
+- Configurable `ignoreColumns` support on the analyzer constructor
+- Deterministic ordering of model classes, columns, and violations
+- Integration tests covering valid model, invalid boolean/decimal casts, decimal scale mismatch, JSON warning, valid date/datetime, custom table, missing table, and unknown database type
 
-### Quality command results (Phase 8, 2026-08-17)
+### Quality command results (Phase 9, 2026-08-17)
 
 | Command | Result | Notes |
 |---|---|---|
 | `composer validate --strict` | Pass | |
 | `composer lint:check` (Pint) | Pass | |
-| `composer analyse` (PHPStan L7) | Pass | 31 files; `--memory-limit=512M` |
+| `composer analyse` (PHPStan L7) | Pass | 35 files; `--memory-limit=512M` |
 | `composer test:types` | Pass | 100% type coverage |
-| `composer test:unit` | Pass | 218 tests, 561 assertions |
+| `composer test:unit` | Pass | 232 tests, 625 assertions |
 
 ## Existing Architecture
 
@@ -42,48 +38,44 @@ The package can **discover models**, **inspect/normalize casts and schema**, **e
 
 ```text
 src/
+├── Analysis/
+│   └── ContractAnalyzer.php
 ├── Compatibility/
-│   └── TypeCompatibilityMatrix.php
 ├── Contracts/
-│   ├── ContractRule.php
-│   ├── ModelDiscoverer.php
-│   ├── ModelInspector.php
-│   └── SchemaInspector.php
+├── Discovery/
+├── Inspectors/
 ├── Rules/
-│   ├── CastMatchesColumnTypeRule.php
-│   ├── DateColumnHasCompatibleCastRule.php
-│   ├── DecimalScaleMatchesRule.php
-│   ├── JsonColumnHasCompatibleCastRule.php
-│   ├── RuleRegistry.php
-│   └── Support/
-│       └── ViolationFactory.php
 ├── DTO/
-│   └── ContractViolation.php (extended)
-└── ...
+│   ├── AnalysisResult.php
+│   ├── AnalysisSummary.php
+│   ├── ContractResult.php
+│   └── ContractViolation.php
+└── Support/
 ```
 
-### Rule execution flow
+### Analysis flow
 
 ```text
-ModelDefinition + ColumnDefinition
+list<string> model classes
         ↓
-RuleRegistry::analyze() / ContractRule::analyze()
+ContractAnalyzer::analyzeModels()
         ↓
-TypeCompatibilityMatrix (where applicable)
+per model: ModelInspector → SchemaInspector → RuleRegistry (per column)
         ↓
-list<ContractViolation>
+ContractResult[] + AnalysisSummary → AnalysisResult
 ```
 
-Rules return structured violations only — no CLI rendering.
+The analyzer is presentation-independent. Phase 10 will render CLI output from `AnalysisResult`.
 
-### Rule responsibilities
+### Analyzer behavior
 
-| Rule | Scope | Typical severity |
-|---|---|---|
-| `cast_matches_column_type` | Non-JSON, non-date/time columns; defers decimal scale | `Error` / `Warning` |
-| `decimal_scale_matches` | Decimal column + decimal cast with known scales | `Error` |
-| `json_column_has_compatible_cast` | JSON columns only | `Warning` (no cast) / `Error` (wrong cast) |
-| `date_column_has_compatible_cast` | Date/datetime/timestamp (except standard timestamps) | `Error` |
+| Scenario | Behavior |
+|---|---|
+| Compatible columns | Increment `passedColumns`; no violations |
+| Rule violations | Collect structured `ContractViolation` records |
+| Missing table | `ContractResult` with error violation; zero columns inspected |
+| Ignored columns | Skipped before rule execution |
+| Multi-model | Sorted model classes; aggregated summary counts |
 
 ## Dependencies
 
@@ -93,10 +85,11 @@ Unchanged from Phase 4.
 
 | Layer | Status |
 |---|---|
-| Unit — each contract rule | `tests/Unit/Rules/*RuleTest.php` |
-| Unit — rule registry | `tests/Unit/Rules/RuleRegistryTest.php` |
-| Unit — compatibility matrix | Phase 7 |
-| Test fixtures | `tests/Support/RuleTestFixtures.php` |
+| Integration — contract analyzer | `tests/Integration/Analysis/ContractAnalyzerTest.php` |
+| Unit — DTO accessors | `tests/Unit/DTO/DomainDtoTest.php` |
+| Unit / integration — prior phases | Phases 3–8 |
+
+Fixtures: `tests/Fixtures/Analysis/`
 
 ## CI State
 
@@ -104,41 +97,40 @@ Unchanged from prior phases.
 
 ## Risks
 
-1. **Rule overlap** — specialized rules own JSON/date/decimal-scale cases; general rule defers to avoid duplicate violations.
-2. **Custom casts** — intentionally produce no blocking violations; compatibility cannot be verified automatically.
-3. **Rules not wired to analyzer yet** — Phase 9 will orchestrate inspection + rule execution.
+1. **Ignore columns not config-wired yet** — analyzer accepts constructor input; Phase 10/11 can bind `schema-contract.ignore_columns`.
+2. **Missing table uses synthetic rule id** — `schema_table_exists` is analyzer-level, not a `ContractRule` implementation.
+3. **No discovery integration yet** — Phase 10 command will compose discovery + analyzer.
 
 ## Conflicts With Master Specification
 
-| Area | Status after Phase 8 |
+| Area | Status after Phase 9 |
 |---|---|
-| Contract rules + registry | Resolved |
-| Structured violations | Resolved |
-| JSON / date / decimal rules | Resolved |
-| Contract analyzer | Not started — Phase 9 |
-| Primary command | Deferred — Phase 10 |
+| Contract analyzer orchestration | Resolved |
+| Programmatic results / summaries | Resolved |
+| Artisan command | Not started — Phase 10 |
+| Config-driven ignores in CLI | Deferred — Phase 11 |
 
 ## Recommended Changes
 
-### Phase 9 (when requested)
+### Phase 10 (when requested)
 
-Presentation-independent analyzer orchestrating discovery, inspection, and rule execution.
+`schema-contract:check` command rendering `AnalysisResult` and exit codes.
 
 ### Later phases
 
-Phases 10–17 per implementation plan.
+Phases 11–17 per implementation plan.
 
 ## Phase Readiness
 
 | Phase | Status |
 |---|---|
-| 0–7 | Complete |
-| 8 — Contract rules | **Complete** |
-| 9 — Contract analyzer | **Ready to begin** |
-| 10–17 | Blocked — await maintainer instruction |
+| 0–8 | Complete |
+| 9 — Contract analyzer | **Complete** |
+| 10 — Artisan command | **Ready to begin** |
+| 11–17 | Blocked — await maintainer instruction |
 
 ---
 
-## Decision: **READY** (for Phase 9)
+## Decision: **READY** (for Phase 10)
 
-Contract rules are implemented, tested independently, and kept separate from analyzer orchestration and CLI output. The contract analyzer should not begin until Phase 9 is explicitly requested.
+Contract analysis is orchestrated, tested end-to-end, and kept separate from CLI rendering. The Artisan command should not begin until Phase 10 is explicitly requested.

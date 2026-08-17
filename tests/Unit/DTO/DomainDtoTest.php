@@ -2,9 +2,12 @@
 
 declare(strict_types=1);
 
+use SimbaJirira\SchemaContract\DTO\AnalysisResult;
+use SimbaJirira\SchemaContract\DTO\AnalysisSummary;
 use SimbaJirira\SchemaContract\DTO\CastDefinition;
 use SimbaJirira\SchemaContract\DTO\ColumnDefinition;
 use SimbaJirira\SchemaContract\DTO\CompatibilityResult;
+use SimbaJirira\SchemaContract\DTO\ContractResult;
 use SimbaJirira\SchemaContract\DTO\ContractViolation;
 use SimbaJirira\SchemaContract\DTO\ModelDefinition;
 use SimbaJirira\SchemaContract\DTO\TableDefinition;
@@ -161,6 +164,96 @@ it('builds a warning violation for missing json cast metadata', function () {
     expect($violation->severity)->toBe(Severity::Warning);
     expect($violation->castType)->toBeNull();
     expect($violation->databaseType)->toBe(DatabaseType::Json);
+});
+
+it('builds a contract result with programmatic severity accessors', function () {
+    $model = new ModelDefinition(
+        modelClass: 'App\\Models\\User',
+        connection: 'mysql',
+        table: 'users',
+        primaryKey: 'id',
+    );
+
+    $table = new TableDefinition(
+        name: 'users',
+        connection: 'mysql',
+        columns: [
+            new ColumnDefinition('active', DatabaseType::Boolean, nullable: false),
+        ],
+    );
+
+    $result = new ContractResult(
+        model: $model,
+        table: $table,
+        violations: [
+            new ContractViolation(
+                severity: Severity::Warning,
+                rule: 'json_column_has_compatible_cast',
+                modelClass: 'App\\Models\\User',
+                table: 'users',
+                connection: 'mysql',
+                column: 'preferences',
+                message: 'JSON column has no explicit cast.',
+            ),
+        ],
+        columnsInspected: 2,
+        passedColumns: 1,
+        errorCount: 0,
+        warningCount: 1,
+        infoCount: 0,
+    );
+
+    expect($result->hasErrors())->toBeFalse()
+        ->and($result->hasWarnings())->toBeTrue()
+        ->and($result->passed())->toBe(1)
+        ->and($result->warnings())->toHaveCount(1);
+});
+
+it('builds an analysis result with aggregate summary accessors', function () {
+    $model = new ModelDefinition(
+        modelClass: 'App\\Models\\User',
+        connection: 'mysql',
+        table: 'users',
+        primaryKey: 'id',
+    );
+
+    $analysis = new AnalysisResult(
+        results: [
+            new ContractResult(
+                model: $model,
+                table: null,
+                violations: [
+                    new ContractViolation(
+                        severity: Severity::Error,
+                        rule: 'cast_matches_column_type',
+                        modelClass: 'App\\Models\\User',
+                        table: 'users',
+                        connection: 'mysql',
+                        column: 'credit_limit',
+                        message: 'Incompatible cast.',
+                    ),
+                ],
+                columnsInspected: 3,
+                passedColumns: 2,
+                errorCount: 1,
+                warningCount: 0,
+                infoCount: 0,
+            ),
+        ],
+        summary: new AnalysisSummary(
+            modelsInspected: 1,
+            columnsInspected: 3,
+            passedColumns: 2,
+            errorCount: 1,
+            warningCount: 0,
+            infoCount: 0,
+        ),
+    );
+
+    expect($analysis->hasErrors())->toBeTrue()
+        ->and($analysis->errors())->toHaveCount(1)
+        ->and($analysis->passed())->toBe(2)
+        ->and($analysis->summary->modelsInspected)->toBe(1);
 });
 
 it('builds a compatibility result with severity and scale metadata', function () {
