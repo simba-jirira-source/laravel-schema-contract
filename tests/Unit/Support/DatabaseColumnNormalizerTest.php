@@ -56,6 +56,8 @@ it('normalizes driver-specific aliases across sqlite mysql and postgresql', func
     ['MEDIUMINT', DatabaseType::Integer],
     ['LONGTEXT', DatabaseType::Text],
     ['VARBINARY(16)', DatabaseType::Binary],
+    ['citext', DatabaseType::String],
+    ['year', DatabaseType::Integer],
 ]);
 
 it('maps mysql tinyint(1) to boolean', function () {

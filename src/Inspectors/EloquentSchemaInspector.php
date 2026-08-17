@@ -37,7 +37,10 @@ final class EloquentSchemaInspector implements SchemaInspector
 
         foreach ($schema->getColumns($model->table) as $column) {
             $columns[] = $this->columnNormalizer->normalize(
-                $this->metadataFactory->make($column),
+                $this->metadataFactory->make(
+                    $column,
+                    $schema->getConnection()->getDriverName(),
+                ),
             );
         }
 

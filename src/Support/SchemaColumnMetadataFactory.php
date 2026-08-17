@@ -4,8 +4,15 @@ declare(strict_types=1);
 
 namespace SimbaJirira\SchemaContract\Support;
 
+use SimbaJirira\SchemaContract\Support\Database\DriverColumnMetadataEnricher;
+
 final class SchemaColumnMetadataFactory
 {
+    public function __construct(
+        private readonly ColumnTypeParser $typeParser = new ColumnTypeParser,
+        private readonly DriverColumnMetadataEnricher $driverEnricher = new DriverColumnMetadataEnricher,
+    ) {}
+
     /**
      * @param  array{
      *     name: string,
@@ -16,7 +23,7 @@ final class SchemaColumnMetadataFactory
      *     ...
      * }  $column
      */
-    public function make(array $column): RawColumnMetadata
+    public function make(array $column, ?string $driver = null): RawColumnMetadata
     {
         $driverType = trim($column['type']);
 
@@ -28,12 +35,23 @@ final class SchemaColumnMetadataFactory
             $driverType = 'unknown';
         }
 
-        return new RawColumnMetadata(
+        $parsed = $this->typeParser->parse($driverType);
+
+        $metadata = new RawColumnMetadata(
             name: $column['name'],
             driverType: $driverType,
             nullable: (bool) $column['nullable'],
             default: $this->stringifyDefault($column['default'] ?? null),
+            length: $parsed['length'],
+            precision: $parsed['precision'],
+            scale: $parsed['scale'],
         );
+
+        if ($driver === null) {
+            return $metadata;
+        }
+
+        return $this->driverEnricher->enrich($driver, $column, $metadata);
     }
 
     private function stringifyDefault(mixed $default): ?string

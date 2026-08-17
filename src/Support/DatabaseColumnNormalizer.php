@@ -9,9 +9,13 @@ use SimbaJirira\SchemaContract\Enums\DatabaseType;
 
 final class DatabaseColumnNormalizer
 {
+    public function __construct(
+        private readonly ColumnTypeParser $typeParser = new ColumnTypeParser,
+    ) {}
+
     public function normalize(RawColumnMetadata $raw): ColumnDefinition
     {
-        $parsed = $this->parseDriverType($raw->driverType);
+        $parsed = $this->typeParser->parse($raw->driverType);
 
         return new ColumnDefinition(
             name: $raw->name,
@@ -23,55 +27,6 @@ final class DatabaseColumnNormalizer
             scale: $raw->scale ?? $parsed['scale'],
             originalDriverType: $raw->driverType,
         );
-    }
-
-    /**
-     * @return array{base: string, length: ?int, precision: ?int, scale: ?int}
-     */
-    private function parseDriverType(string $driverType): array
-    {
-        $normalized = strtolower(trim($driverType));
-        $normalized = (string) preg_replace('/\s+(unsigned|zerofill)\b/', '', $normalized);
-
-        $length = null;
-        $precision = null;
-        $scale = null;
-        $base = $normalized;
-
-        if (preg_match('/^(.+?)\(([^)]+)\)\s*$/', $normalized, $matches) === 1) {
-            $base = trim($matches[1]);
-            $parameters = array_map(trim(...), explode(',', $matches[2]));
-
-            if (count($parameters) === 2 && is_numeric($parameters[0]) && is_numeric($parameters[1])) {
-                $precision = (int) $parameters[0];
-                $scale = (int) $parameters[1];
-            } elseif (count($parameters) === 1 && is_numeric($parameters[0])) {
-                $length = (int) $parameters[0];
-            }
-        }
-
-        $base = $this->normalizeBaseType($base);
-
-        return [
-            'base' => $base,
-            'length' => $length,
-            'precision' => $precision,
-            'scale' => $scale,
-        ];
-    }
-
-    private function normalizeBaseType(string $base): string
-    {
-        return match (true) {
-            str_starts_with($base, 'character varying') => 'varchar',
-            str_starts_with($base, 'character') => 'char',
-            str_starts_with($base, 'double precision') => 'double',
-            str_starts_with($base, 'timestamp with time zone') => 'timestamptz',
-            str_starts_with($base, 'timestamp without time zone') => 'timestamp',
-            str_starts_with($base, 'time with time zone') => 'timetz',
-            str_starts_with($base, 'time without time zone') => 'time',
-            default => $base,
-        };
     }
 
     private function mapToDatabaseType(string $base, ?int $length): DatabaseType
@@ -92,7 +47,7 @@ final class DatabaseColumnNormalizer
             'decimal', 'numeric', 'dec', 'fixed', 'number' => DatabaseType::Decimal,
             'float', 'real', 'float4' => DatabaseType::Float,
             'double', 'float8' => DatabaseType::Double,
-            'varchar', 'char', 'character', 'nvarchar', 'nchar', 'string', 'bpchar' => DatabaseType::String,
+            'varchar', 'char', 'character', 'nvarchar', 'nchar', 'string', 'bpchar', 'citext' => DatabaseType::String,
             'text', 'tinytext', 'mediumtext', 'longtext', 'clob' => DatabaseType::Text,
             'date' => DatabaseType::Date,
             'datetime', 'datetime2' => DatabaseType::DateTime,
@@ -100,6 +55,7 @@ final class DatabaseColumnNormalizer
             'json', 'jsonb' => DatabaseType::Json,
             'uuid', 'uniqueidentifier' => DatabaseType::Uuid,
             'enum' => DatabaseType::Enum,
+            'year' => DatabaseType::Integer,
             'binary', 'varbinary', 'blob', 'bytea', 'raw', 'bit' => DatabaseType::Binary,
             default => DatabaseType::Unknown,
         };
