@@ -23,6 +23,7 @@
     ],
     "require": {
         "php": "^8.3",
+        "illuminate/console": "^13.0",
         "illuminate/database": "^13.0",
         "illuminate/support": "^13.0"
     },
@@ -80,10 +81,14 @@
             "vendor/bin/pest --parallel"
         ],
         "test": [
+            "@check:composer",
             "@analyse",
             "@lint:check",
             "@test:types",
             "@test:unit"
+        ],
+        "check:composer": [
+            "composer validate --strict"
         ],
         "clear": [
             "@php vendor/bin/testbench package:purge-skeleton --ansi"

@@ -39,10 +39,24 @@ final class EloquentModelInspector implements ModelInspector
 
         return new ModelDefinition(
             modelClass: $modelClass,
-            connection: $model->getConnectionName() ?? $model->getConnection()->getName(),
+            connection: $this->resolveConnectionName($model),
             table: $model->getTable(),
             primaryKey: $model->getKeyName(),
             casts: $casts,
         );
+    }
+
+    private function resolveConnectionName(Model $model): string
+    {
+        $connection = $model->getConnectionName() ?? $model->getConnection()->getName();
+
+        if (! is_string($connection) || $connection === '') {
+            throw new InvalidArgumentException(sprintf(
+                'Unable to resolve database connection for model [%s].',
+                $model::class,
+            ));
+        }
+
+        return $connection;
     }
 }

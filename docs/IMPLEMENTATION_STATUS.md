@@ -1,117 +1,119 @@
 # Laravel Schema Contract — Implementation Status
 
-> Updated by Phase 12 — Database Compatibility Hardening (2026-08-17).
+> Updated by Phase 13 — Static Analysis and Architecture Quality (2026-08-17).
 
 ## Current Phase
 
-**Phase 12 — Complete**
+**Phase 13 — Complete**
 
-Next recommended phase: **Phase 13 — Static Analysis and Architecture Quality** (await explicit maintainer instruction).
+Next recommended phase: **Phase 14 — CI** (await explicit maintainer instruction).
 
 ## Current State
 
-Database driver metadata is hardened for SQLite, MySQL/MariaDB, and PostgreSQL with isolated driver enrichment, expanded integration coverage, and explicit documentation of verified support and limitations.
+Static analysis is tightened to PHPStan level 8 with Larastan (via `phpstan/extension-installer`), architecture boundaries are enforced in Pest arch tests, and production dependencies explicitly declare the Artisan command package requirement.
 
-### Phase 12 deliverables
+### Phase 13 deliverables
 
-- `ColumnTypeParser` — shared precision/scale/length parsing from driver type strings
-- `DatabaseDriver` enum and `DriverColumnMetadataEnricher` — isolated SQLite/MySQL/PostgreSQL metadata enrichment
-- `SchemaColumnMetadataFactory` and `EloquentSchemaInspector` pass connection driver into enrichment
-- `DatabaseColumnNormalizer` extended for PostgreSQL `citext` and MySQL `year`
-- SQLite integration coverage for booleans, integers, decimal, JSON, UUID-as-string, datetime, and unknown types
-- MySQL/PostgreSQL grouped integration tests (skip locally; run in `database-compatibility` CI workflow)
-- Unit tests for driver metadata fixtures across all three drivers
-- `docs/DATABASE_SUPPORT.md` documenting verified behavior and genuine limitations
-- `.github/workflows/database-compatibility.yml` for MySQL and PostgreSQL service verification
+- PHPStan raised to **level 8** with Larastan package tuning (`disableMigrationScan`, `disableSchemaScan`, `treatPhpDocTypesAsCertain: false`)
+- Larastan loaded through `phpstan/extension-installer` (no duplicate neon include)
+- Fixed nullable model connection resolution in `EloquentModelInspector`
+- Added explicit production dependency on `illuminate/console`
+- Added `composer check:composer` script (`composer validate --strict`) to the quality pipeline
+- Expanded Pest architecture tests for layer boundaries, readonly DTOs, and reflection isolation
+- Reviewed public APIs, DTO design, mixed usage boundaries, and service provider bindings (no premature container bindings added)
 
-### Quality command results (Phase 12, 2026-08-17)
+### Architecture review decisions
+
+| Area | Decision |
+|---|---|
+| Service container bindings | Deferred — command constructs analyzer explicitly; no facade/manager layer for v0.1 |
+| `mixed` usage | Retained only at Laravel/config/cast input boundaries (`CastNormalizer`, config readers) |
+| Reflection | Confined to `EloquentModelDiscoverer` (arch test enforced) |
+| DTOs | All readonly under `SimbaJirira\SchemaContract\DTO` |
+| Production deps | `illuminate/console`, `illuminate/database`, `illuminate/support` only |
+
+### Quality command results (Phase 13, 2026-08-17)
 
 | Command | Result | Notes |
 |---|---|---|
 | `composer validate --strict` | Pass | |
+| `composer analyse` (PHPStan L8 + Larastan) | Pass | 44 files; `--memory-limit=512M` |
 | `composer lint:check` (Pint) | Pass | |
-| `composer analyse` (PHPStan L7) | Pass | 44 files; `--memory-limit=512M` |
 | `composer test:types` | Pass | 100% type coverage |
-| `composer test:unit` | Pass | 272 passed, 6 skipped (mysql/pgsql groups), 716 assertions |
+| `composer test:unit` | Pass | 279 passed, 6 skipped, 734 assertions |
 
 ## Existing Architecture
 
-### Database normalization flow
+### Layer boundaries (enforced)
 
 ```text
-Schema::getColumns()
-        ↓
-SchemaColumnMetadataFactory (driver-aware)
-        ↓
-DriverColumnMetadataEnricher (sqlite / mysql / pgsql)
-        ↓
-DatabaseColumnNormalizer + ColumnTypeParser
-        ↓
-ColumnDefinition → ContractAnalyzer / rules
+Contracts ──► DTOs / Enums
+Analysis / Rules / Compatibility ──► Inspectors / Support (no Console)
+Console ──► Analysis + Discovery + Rendering
+Discovery ──► Reflection (only layer allowed)
 ```
 
-### Driver verification matrix
+### Static analysis stack
 
-| Driver | Default CI | Dedicated CI workflow | Integration tests |
-|---|---|---|---|
-| SQLite | Yes | n/a | Always run |
-| MySQL/MariaDB | Skipped locally | `database-compatibility.yml` | `--group=mysql` |
-| PostgreSQL | Skipped locally | `database-compatibility.yml` | `--group=pgsql` |
+```text
+phpstan.neon.dist (level 8)
+        ↓
+phpstan/extension-installer → Larastan
+        ↓
+src/ + config/
+```
 
 ## Dependencies
 
-Unchanged from Phase 4.
+Production:
+
+- `illuminate/console` (Artisan command)
+- `illuminate/database` (schema + Eloquent)
+- `illuminate/support` (service provider, config)
+
+Development: Larastan, Pest, Testbench, Pint (unchanged scope).
 
 ## Testing State
 
 | Layer | Status |
 |---|---|
-| Unit — column type parser / driver enricher | `tests/Unit/Support/` |
-| Integration — SQLite driver | `tests/Integration/Database/SqliteDriverCompatibilityTest.php` |
-| Integration — MySQL driver | `tests/Integration/Database/MySqlDriverCompatibilityTest.php` |
-| Integration — PostgreSQL driver | `tests/Integration/Database/PostgresDriverCompatibilityTest.php` |
-| CI — database compatibility | `.github/workflows/database-compatibility.yml` |
+| Architecture — layer boundaries | `tests/ArchTest.php` (7 boundary rules + presets) |
+| All prior phase tests | Unchanged and passing |
 
 ## CI State
 
-- Existing `tests.yml` unchanged (SQLite-focused matrix)
-- New `database-compatibility.yml` verifies MySQL and PostgreSQL integration groups on Ubuntu with service containers
+Unchanged from Phase 12 (`tests.yml`, `database-compatibility.yml`). Phase 14 will align CI with the updated L8 analysis pipeline.
 
 ## Risks
 
-1. **SQLite integer aliasing** — all integer sizes report as `integer`; documented in `docs/DATABASE_SUPPORT.md`.
-2. **PostgreSQL native enums** — not fully verified across all deployment styles in v0.1.0.
-3. **Parallel Testbench flakiness** — occasional config bootstrap race on Windows under `--parallel`.
+1. **Parallel Testbench flakiness** — occasional config bootstrap race on Windows under `--parallel`.
+2. **No container bindings yet** — programmatic extension still requires direct instantiation until a later phase justifies DI wiring.
 
 ## Conflicts With Master Specification
 
-| Area | Status after Phase 12 |
-|---|---|
-| First-class SQLite/MySQL/PostgreSQL support | Resolved for v0.1 metadata normalization scope |
-| Graceful unknown metadata degradation | Resolved |
-| README driver documentation | Deferred — Phase 15 |
+None identified for Phase 13 scope.
 
 ## Recommended Changes
 
-### Phase 13 (when requested)
+### Phase 14 (when requested)
 
-Add/refine PHPStan/Larastan architecture checks and review public API quality.
+Wire `composer check:composer`, PHPStan L8, Pint, and Pest into the primary GitHub Actions workflow matrix.
 
 ### Later phases
 
-Phases 14–17 per implementation plan.
+Phases 15–17 per implementation plan.
 
 ## Phase Readiness
 
 | Phase | Status |
 |---|---|
-| 0–11 | Complete |
-| 12 — DB hardening | **Complete** |
-| 13 — Static analysis / architecture | **Ready to begin** |
-| 14–17 | Blocked — await maintainer instruction |
+| 0–12 | Complete |
+| 13 — Static analysis / architecture | **Complete** |
+| 14 — CI | **Ready to begin** |
+| 15–17 | Blocked — await maintainer instruction |
 
 ---
 
-## Decision: **READY** (for Phase 13)
+## Decision: **READY** (for Phase 14)
 
-Driver-specific schema normalization is hardened, tested, and documented. Static analysis and architecture quality work should not begin until Phase 13 is explicitly requested.
+Static analysis, architecture boundaries, and dependency declarations are aligned with v0.1 quality goals. CI hardening should not begin until Phase 14 is explicitly requested.
