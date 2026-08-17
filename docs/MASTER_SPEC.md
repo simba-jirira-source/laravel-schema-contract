@@ -3,8 +3,8 @@
 ## 1. Package Identity
 
 - **Package:** Laravel Schema Contract
-- **Composer package:** `simba-jirira/laravel-schema-contract`
-- **Repository:** `laravel-schema-contract`
+- **Composer package:** `simba-jirira-source/laravel-schema-contract`
+- **Repository:** `simba-jirira-source/laravel-schema-contract`
 - **Namespace:** `SimbaJirira\SchemaContract`
 - **Primary command:** `php artisan schema-contract:check`
 - **License:** MIT
@@ -669,7 +669,7 @@ Document only implemented behavior:
 Recommended development install:
 
 ```bash
-composer require simba-jirira/laravel-schema-contract --dev
+composer require simba-jirira-source/laravel-schema-contract --dev
 ```
 
 ## 34. Branch Strategy

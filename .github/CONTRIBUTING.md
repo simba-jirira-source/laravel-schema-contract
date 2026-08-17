@@ -34,6 +34,19 @@ Lint your code:
 composer lint
 ```
 
+Check formatting without fixing:
+
+```bash
+composer lint:check
+```
+
+## Static analysis and type coverage
+
+```bash
+composer analyse
+composer test:types
+```
+
 ## Tests
 
 Run all tests:
@@ -41,3 +54,11 @@ Run all tests:
 ```bash
 composer test
 ```
+
+Run Pest directly:
+
+```bash
+vendor/bin/pest
+```
+
+Optional MySQL/PostgreSQL integration tests are documented in [docs/DATABASE_SUPPORT.md](../docs/DATABASE_SUPPORT.md).

@@ -5,7 +5,7 @@ alwaysApply: true
 
 # Laravel Schema Contract — Cursor Project Rules
 
-This repository is the `simba-jirira/laravel-schema-contract` Laravel package.
+This repository is the `simba-jirira-source/laravel-schema-contract` Laravel package.
 
 ## Authoritative project documents
 
@@ -64,7 +64,7 @@ Do not introduce React, Vue, Inertia, Bootstrap, Node UI tooling, or unrelated f
 
 Prefer:
 
-- Composer package: `simba-jirira/laravel-schema-contract`
+- Composer package: `simba-jirira-source/laravel-schema-contract`
 - Namespace: `SimbaJirira\SchemaContract`
 - Service provider: `SchemaContractServiceProvider`
 - Primary command: `schema-contract:check`
