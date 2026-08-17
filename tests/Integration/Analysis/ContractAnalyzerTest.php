@@ -11,6 +11,8 @@ use SimbaJirira\SchemaContract\Rules\CastMatchesColumnTypeRule;
 use SimbaJirira\SchemaContract\Rules\DateColumnHasCompatibleCastRule;
 use SimbaJirira\SchemaContract\Rules\DecimalScaleMatchesRule;
 use SimbaJirira\SchemaContract\Rules\JsonColumnHasCompatibleCastRule;
+use SimbaJirira\SchemaContract\Rules\RuleRegistry;
+use SimbaJirira\SchemaContract\Support\IgnoreColumnMatcher;
 use SimbaJirira\SchemaContract\Tests\Fixtures\Analysis\DecimalScaleMismatchAnalyzerProfile;
 use SimbaJirira\SchemaContract\Tests\Fixtures\Analysis\InvalidBooleanAnalyzerProfile;
 use SimbaJirira\SchemaContract\Tests\Fixtures\Analysis\InvalidDecimalAnalyzerProfile;
@@ -165,7 +167,12 @@ it('does not print cli output during analysis', function () {
 });
 
 it('skips ignored columns during analysis', function () {
-    $analyzer = new ContractAnalyzer(ignoreColumns: ['active']);
+    $analyzer = new ContractAnalyzer(
+        ruleRegistry: RuleRegistry::withDefaults(),
+        ignoreColumnMatcher: IgnoreColumnMatcher::fromConfigured([
+            'analyzer_profiles' => ['active'],
+        ]),
+    );
 
     $result = $analyzer->analyzeModel(InvalidBooleanAnalyzerProfile::class);
 

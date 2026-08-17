@@ -17,19 +17,17 @@ use SimbaJirira\SchemaContract\Exceptions\MissingTableException;
 use SimbaJirira\SchemaContract\Inspectors\EloquentModelInspector;
 use SimbaJirira\SchemaContract\Inspectors\EloquentSchemaInspector;
 use SimbaJirira\SchemaContract\Rules\RuleRegistry;
+use SimbaJirira\SchemaContract\Support\IgnoreColumnMatcher;
 
 final class ContractAnalyzer
 {
     public const string MISSING_TABLE_RULE = 'schema_table_exists';
 
-    /**
-     * @param  list<string>  $ignoreColumns
-     */
     public function __construct(
         private readonly ModelInspector $modelInspector = new EloquentModelInspector,
         private readonly SchemaInspector $schemaInspector = new EloquentSchemaInspector,
         private readonly RuleRegistry $ruleRegistry = new RuleRegistry,
-        private readonly array $ignoreColumns = [],
+        private readonly IgnoreColumnMatcher $ignoreColumnMatcher = new IgnoreColumnMatcher,
     ) {}
 
     public static function withDefaults(): self
@@ -76,7 +74,7 @@ final class ContractAnalyzer
         usort($columns, fn (ColumnDefinition $left, ColumnDefinition $right): int => strcmp($left->name, $right->name));
 
         foreach ($columns as $column) {
-            if ($this->shouldIgnoreColumn($column->name)) {
+            if ($this->ignoreColumnMatcher->shouldIgnore($model->table, $column->name)) {
                 continue;
             }
 
@@ -173,11 +171,6 @@ final class ContractAnalyzer
         sort($modelClasses);
 
         return $modelClasses;
-    }
-
-    private function shouldIgnoreColumn(string $column): bool
-    {
-        return in_array($column, $this->ignoreColumns, true);
     }
 
     /**

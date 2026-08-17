@@ -10,14 +10,15 @@ use SimbaJirira\SchemaContract\DTO\ColumnDefinition;
 use SimbaJirira\SchemaContract\DTO\ContractResult;
 use SimbaJirira\SchemaContract\DTO\ContractViolation;
 use SimbaJirira\SchemaContract\Enums\DatabaseType;
+use SimbaJirira\SchemaContract\Support\IgnoreColumnMatcher;
 
 final class AnalysisConsoleRenderer
 {
-    /**
-     * @param  list<string>  $ignoreColumns
-     */
-    public function render(OutputStyle $output, ContractResult $result, array $ignoreColumns = []): void
-    {
+    public function render(
+        OutputStyle $output,
+        ContractResult $result,
+        IgnoreColumnMatcher $ignoreColumnMatcher = new IgnoreColumnMatcher,
+    ): void {
         $output->writeln($result->modelClass());
         $output->writeln('Table: '.$result->model->table);
         $output->newLine();
@@ -37,7 +38,7 @@ final class AnalysisConsoleRenderer
         usort($columns, fn (ColumnDefinition $left, ColumnDefinition $right): int => strcmp($left->name, $right->name));
 
         foreach ($columns as $column) {
-            if (in_array($column->name, $ignoreColumns, true)) {
+            if ($ignoreColumnMatcher->shouldIgnore($result->model->table, $column->name)) {
                 continue;
             }
 

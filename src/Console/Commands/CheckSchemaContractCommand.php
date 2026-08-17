@@ -12,6 +12,7 @@ use SimbaJirira\SchemaContract\Console\Rendering\AnalysisConsoleRenderer;
 use SimbaJirira\SchemaContract\Console\Support\ModelClassResolver;
 use SimbaJirira\SchemaContract\Discovery\EloquentModelDiscoverer;
 use SimbaJirira\SchemaContract\Rules\RuleRegistry;
+use SimbaJirira\SchemaContract\Support\IgnoreColumnMatcher;
 use Throwable;
 
 final class CheckSchemaContractCommand extends Command
@@ -39,15 +40,17 @@ final class CheckSchemaContractCommand extends Command
                 return self::SUCCESS;
             }
 
+            $ignoreColumnMatcher = IgnoreColumnMatcher::fromConfig();
+
             $analyzer = new ContractAnalyzer(
                 ruleRegistry: RuleRegistry::withDefaults(),
-                ignoreColumns: $this->ignoreColumns(),
+                ignoreColumnMatcher: $ignoreColumnMatcher,
             );
 
             $analysis = $analyzer->analyzeModels($modelClasses);
 
             foreach ($analysis->results as $result) {
-                $renderer->render($this->output, $result, $this->ignoreColumns());
+                $renderer->render($this->output, $result, $ignoreColumnMatcher);
             }
 
             $renderer->renderSummary($this->output, $analysis->summary);
@@ -80,34 +83,5 @@ final class CheckSchemaContractCommand extends Command
         return [
             $modelClassResolver->resolve($modelArgument, $modelDiscoverer->discover()),
         ];
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function ignoreColumns(): array
-    {
-        /** @var mixed $configured */
-        $configured = config('schema-contract.ignore_columns', []);
-
-        if (! is_array($configured) || $configured === []) {
-            return [];
-        }
-
-        $columns = [];
-
-        foreach ($configured as $value) {
-            if (! is_array($value)) {
-                continue;
-            }
-
-            foreach ($value as $column) {
-                if (is_string($column)) {
-                    $columns[] = $column;
-                }
-            }
-        }
-
-        return array_values(array_unique($columns));
     }
 }
