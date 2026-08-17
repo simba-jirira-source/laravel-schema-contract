@@ -1,30 +1,48 @@
 # Laravel Schema Contract — Implementation Status
 
-> Updated by Phase 16 — Release-Readiness Remediation (2026-08-17).
+> Updated by Phase 16 — Release-Readiness Verification (2026-08-17).
 
 ## Current Phase
 
-**Phase 16 — Complete (conditional on GitHub Actions)**
+**Phase 16 — Complete**
 
 Next recommended phase: **Phase 17 — Post-v0.1 Architecture Review** (await explicit maintainer instruction).
 
 ## Release-Readiness Verdict
 
-**NOT RELEASE CANDIDATE READY until GitHub Actions is fully green**
+**READY FOR v0.1.0 RELEASE CANDIDATE**
 
-Phase 16 remediation addressed the failing parallel Pest smoke job root cause and related CI packaging issues. Local validation passes, including serial and parallel Pest. Release readiness is **conditional on the next GitHub Actions run confirming all jobs pass**, especially `PHP 8.4 prefer-stable (parallel Pest smoke)`.
+Phase 16 remediation and GitHub Actions verification are complete for commit `940b396cb16588068b299030c30d08bdb06028b9`. Local validation and CI both pass.
 
 No tag, GitHub Release, Packagist publish, or branch merge was performed.
 
 ### GitHub Actions status (2026-08-17)
 
-| Area | Status |
+**CI fully green:** Pass
+
+Verified workflows:
+
+| Workflow | Status |
 |---|---|
-| PHP compatibility matrix (serial Pest) | Green (prior run) |
-| Windows smoke | Green (prior run) |
-| MySQL / PostgreSQL compatibility | Green (prior run) |
-| Parallel Pest smoke | **Failed intermittently (remediated locally; await CI confirmation)** |
-| `update-changelog.yml` | **Removed** — no post-release changelog mutation |
+| `tests` | Pass |
+| `database-compatibility` | Pass |
+
+Verified jobs:
+
+| Job | Status |
+|---|---|
+| PHP 8.3 prefer-lowest | Pass |
+| PHP 8.3 prefer-stable | Pass |
+| PHP 8.4 prefer-lowest | Pass |
+| PHP 8.4 prefer-stable | Pass |
+| PHP 8.5 prefer-lowest | Pass |
+| PHP 8.5 prefer-stable | Pass |
+| PHP 8.4 (Windows) | Pass |
+| PHP 8.4 prefer-stable (parallel Pest smoke) | Pass |
+| MySQL compatibility | Pass |
+| PostgreSQL compatibility | Pass |
+
+`update-changelog.yml` was removed in Phase 16 remediation — no post-release changelog mutation.
 
 ## Phase 16 remediation deliverables
 
@@ -53,7 +71,7 @@ No tag, GitHub Release, Packagist publish, or branch merge was performed.
 |---|---|---|
 | Package behavior | Pass | Unchanged; audit confirmed |
 | Local quality suite | Pass | See table below |
-| CI fully green | **Pending** | Parallel smoke was red; remediation pushed |
+| CI fully green | Pass | Verified on commit `940b396` |
 | CHANGELOG ready | Pass | Manual Keep a Changelog; no auto-update workflow |
 | No automatic release | Pass | No tag, release, or publish |
 
@@ -76,7 +94,7 @@ No tag, GitHub Release, Packagist publish, or branch merge was performed.
 
 ## Parallel Pest boundary
 
-After TestCase scoping, the **full suite** runs deterministically in parallel locally. The CI parallel smoke job continues to run `vendor/bin/pest --parallel` for the complete suite without `continue-on-error`. If CI still flakes, the boundary is Orchestra Testbench boot for Laravel-scoped tests only; pure unit/architecture tests no longer trigger Testbench during parallel workers.
+After TestCase scoping, the full suite runs deterministically in parallel locally and in the CI parallel smoke job (`vendor/bin/pest --parallel`) without `continue-on-error`. Laravel-scoped tests boot Orchestra Testbench only under `Feature/` and `Integration/`; pure unit and architecture tests do not.
 
 ## Known limitations (accepted for v0.1.0)
 
@@ -88,11 +106,11 @@ After TestCase scoping, the **full suite** runs deterministically in parallel lo
 
 | Phase | Status |
 |---|---|
-| 0–16 | Complete (CI confirmation pending) |
-| 17 — Post-v0.1 review | Blocked — await maintainer instruction and green CI |
+| 0–16 | Complete |
+| 17 — Post-v0.1 review | **Ready to begin** |
 
 ---
 
-## Decision: **CONDITIONAL** (await green GitHub Actions)
+## Decision: **RELEASE CANDIDATE READY**
 
-Do not tag v0.1.0 until the remediated workflows pass on GitHub. Phase 17 should not begin until explicitly requested.
+v0.1.0 is ready for maintainer-led tagging and release. Phase 17 should not begin until explicitly requested.
