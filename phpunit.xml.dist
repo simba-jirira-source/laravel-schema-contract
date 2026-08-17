@@ -16,8 +16,8 @@
     backupStaticProperties="false"
 >
     <testsuites>
-        <testsuite name="Arch">
-            <file>tests/ArchTest.php</file>
+        <testsuite name="Architecture">
+            <directory>tests/Architecture</directory>
         </testsuite>
         <testsuite name="Feature">
             <directory>tests/Feature</directory>

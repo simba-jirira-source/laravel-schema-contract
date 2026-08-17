@@ -46,12 +46,10 @@ jobs:
       - name: Cache Composer dependencies
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: |
-            ${{ steps.composer-cache.outputs.dir }}
-            vendor
-          key: ${{ runner.os }}-php-${{ matrix.php }}-${{ matrix.stability }}-${{ hashFiles('composer.json', 'composer.lock') }}
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-php-${{ matrix.php }}-${{ matrix.stability }}-${{ hashFiles('composer.json', 'composer.lock') }}
           restore-keys: |
-            ${{ runner.os }}-php-${{ matrix.php }}-${{ matrix.stability }}-
+            ${{ runner.os }}-composer-php-${{ matrix.php }}-${{ matrix.stability }}-
 
       - name: Install dependencies
         run: |
@@ -98,12 +96,10 @@ jobs:
       - name: Cache Composer dependencies
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: |
-            ${{ steps.composer-cache.outputs.dir }}
-            vendor
-          key: ${{ runner.os }}-php-8.4-prefer-stable-parallel-${{ hashFiles('composer.json', 'composer.lock') }}
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-php-8.4-prefer-stable-parallel-${{ hashFiles('composer.json', 'composer.lock') }}
           restore-keys: |
-            ${{ runner.os }}-php-8.4-prefer-stable-parallel-
+            ${{ runner.os }}-composer-php-8.4-prefer-stable-parallel-
 
       - name: Install dependencies
         run: |
@@ -142,12 +138,10 @@ jobs:
       - name: Cache Composer dependencies
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: |
-            ${{ steps.composer-cache.outputs.dir }}
-            vendor
-          key: ${{ runner.os }}-php-8.4-prefer-stable-${{ hashFiles('composer.json', 'composer.lock') }}
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-php-8.4-prefer-stable-${{ hashFiles('composer.json', 'composer.lock') }}
           restore-keys: |
-            ${{ runner.os }}-php-8.4-prefer-stable-
+            ${{ runner.os }}-composer-php-8.4-prefer-stable-
 
       - name: Install dependencies
         run: |

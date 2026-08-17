@@ -136,3 +136,24 @@ it('reads ignore column configuration from the application config at runtime', f
 
     expect(Artisan::output())->not->toContain('ERROR    active');
 });
+
+it('reads ignored columns from application configuration through fromConfig', function () {
+    config([
+        'schema-contract.ignore_columns' => [
+            'profiles' => ['secret'],
+        ],
+    ]);
+
+    expect(IgnoreColumnMatcher::fromConfig()->shouldIgnore('profiles', 'secret'))->toBeTrue()
+        ->and(IgnoreColumnMatcher::fromConfig()->shouldIgnore('profiles', 'name'))->toBeFalse();
+});
+
+it('returns no ignored columns when ignore column configuration is empty or invalid', function () {
+    config(['schema-contract.ignore_columns' => []]);
+
+    expect(IgnoreColumnMatcher::fromConfig()->ignoredColumnsFor('users'))->toBe([]);
+
+    config(['schema-contract.ignore_columns' => 'invalid']);
+
+    expect(IgnoreColumnMatcher::fromConfig()->shouldIgnore('users', 'password'))->toBeFalse();
+});

@@ -1,122 +1,98 @@
 # Laravel Schema Contract — Implementation Status
 
-> Updated by Phase 16 — v0.1.0 Release-Readiness Audit (2026-08-17).
+> Updated by Phase 16 — Release-Readiness Remediation (2026-08-17).
 
 ## Current Phase
 
-**Phase 16 — Complete**
+**Phase 16 — Complete (conditional on GitHub Actions)**
 
 Next recommended phase: **Phase 17 — Post-v0.1 Architecture Review** (await explicit maintainer instruction).
 
 ## Release-Readiness Verdict
 
-**READY FOR v0.1.0 RELEASE CANDIDATE**
+**NOT RELEASE CANDIDATE READY until GitHub Actions is fully green**
 
-The repository satisfies the master specification definition of done for v0.1.0. All local quality checks pass. No release-blocking defects were found in package behavior, tests, documentation, or packaging.
+Phase 16 remediation addressed the failing parallel Pest smoke job root cause and related CI packaging issues. Local validation passes, including serial and parallel Pest. Release readiness is **conditional on the next GitHub Actions run confirming all jobs pass**, especially `PHP 8.4 prefer-stable (parallel Pest smoke)`.
 
-**Maintainer actions still required (not performed in this phase):**
+No tag, GitHub Release, Packagist publish, or branch merge was performed.
 
-- Create and push Git tag `v0.1.0`
-- Create GitHub Release
-- Publish to Packagist (if applicable)
-- Confirm GitHub Actions workflows are green on the release branch
+### GitHub Actions status (2026-08-17)
 
-No tag, release, publish, or branch merge was performed.
+| Area | Status |
+|---|---|
+| PHP compatibility matrix (serial Pest) | Green (prior run) |
+| Windows smoke | Green (prior run) |
+| MySQL / PostgreSQL compatibility | Green (prior run) |
+| Parallel Pest smoke | **Failed intermittently (remediated locally; await CI confirmation)** |
+| `update-changelog.yml` | **Removed** — no post-release changelog mutation |
+
+## Phase 16 remediation deliverables
+
+### Test scoping
+
+- `tests/Pest.php` now applies `Tests\TestCase` only to `Feature/` and `Integration/`
+- Pure unit tests under `tests/Unit/` and architecture tests under `tests/Architecture/` run without Orchestra Testbench
+- `IgnoreColumnMatcher` config integration tests moved from unit to `Feature/Configuration/`
+- `ArchTest.php` relocated to `tests/Architecture/` for reliable Pest discovery in serial and parallel runs
+
+### CI and packaging
+
+- Composer cache in `tests.yml` and `database-compatibility.yml` caches download cache only (not `vendor/`)
+- Fresh `composer update` + `composer run prepare` on each job avoids stale Testbench skeleton restores
+- Deleted `.github/workflows/update-changelog.yml`
+- Preserved `.gitattributes` export-ignore; `docs/DATABASE_SUPPORT.md` remains in the consumer archive
+
+### Prior Phase 16 deliverables (retained)
+
+- `CHANGELOG.md` with empty `[Unreleased]` above `[0.1.0] - 2026-08-17`
+- `composer.json` support metadata and reliable `composer test` gate (serial Pest + `@prepare`)
 
 ## Definition of Done Audit (v0.1.0)
 
-| Criterion | Result | Evidence |
+| Criterion | Result | Notes |
 |---|---|---|
-| Installs into Laravel 13+ | Pass | `composer.json` requires `illuminate/* ^13.0`, PHP `^8.3` |
-| Package auto-discovery | Pass | `PackageFoundationTest`, service provider `extra.laravel` |
-| Model discovery | Pass | `EloquentModelDiscovererTest` |
-| Custom table names | Pass | Inspector and integration tests |
-| Custom connections respected | Pass | Schema inspector tests |
-| Casts inspected | Pass | `EloquentModelInspectorTest`, `CastNormalizerTest` |
-| Database columns inspected | Pass | `EloquentSchemaInspectorTest`, driver compatibility tests |
-| Types normalized | Pass | Normalizer unit tests |
-| Compatibility checks work | Pass | `TypeCompatibilityMatrixTest`, rule tests |
-| Decimal mismatches detected | Pass | `DecimalScaleMatchesRuleTest`, analyzer integration |
-| Boolean mismatches detected | Pass | Command and rule tests |
-| JSON compatibility handled | Pass | `JsonColumnHasCompatibleCastRule`, command warning test |
-| Date compatibility handled | Pass | `DateColumnHasCompatibleCastRule` |
-| Unsupported types degrade gracefully | Pass | Unknown type handling in compatibility matrix |
-| Errors/warnings distinguished | Pass | Severity enum, command exit code tests |
-| Command output readable | Pass | `AnalysisConsoleRenderer`, command feature tests |
-| CI exit codes work | Pass | `CheckSchemaContractCommandTest` |
-| Configuration/ignores work | Pass | `SchemaContractConfigurationTest` |
-| Tests pass | Pass | 282 passed, 6 skipped (driver groups) |
-| Pint passes | Pass | `composer lint:check` |
-| Static analysis passes | Pass | PHPStan L8 + Larastan, 44 files |
-| CI configured | Pass | `tests.yml`, `database-compatibility.yml` |
-| README accurate | Pass | Phase 15 documentation audit |
-| CHANGELOG ready | Pass | Keep a Changelog `[Unreleased]` + `[0.1.0]` |
-| No automatic release | Pass | No tag, release, or publish performed |
+| Package behavior | Pass | Unchanged; audit confirmed |
+| Local quality suite | Pass | See table below |
+| CI fully green | **Pending** | Parallel smoke was red; remediation pushed |
+| CHANGELOG ready | Pass | Manual Keep a Changelog; no auto-update workflow |
+| No automatic release | Pass | No tag, release, or publish |
 
-## Phase 16 deliverables
-
-- Full repository audit against `docs/MASTER_SPEC.md` definition of done
-- Complete local quality suite executed successfully
-- `CHANGELOG.md` updated with Keep a Changelog format and v0.1.0 release notes
-- Packaging tightened: `composer.json` support metadata, reliable `composer test` gate (serial Pest + `@prepare`), `.gitattributes` export-ignore for dev-only paths, removed skeleton `public/.gitkeep`
-- Release-readiness verdict recorded
-
-### Quality command results (Phase 16, 2026-08-17)
+## Quality command results (Phase 16 remediation, 2026-08-17)
 
 | Command | Result | Notes |
 |---|---|---|
-| `composer test` | Pass | Serial Pest after `@prepare`; release gate |
-| `composer test:unit` | Pass | Parallel Pest (optional) |
-| `vendor/bin/pest` | Pass | Serial |
-| `composer check:composer` | Pass | Includes strict validation after `support` metadata added |
+| `composer check:composer` | Pass | |
+| `composer analyse` | Pass | PHPStan L8, 44 files |
+| `composer lint:check` | Pass | |
+| `composer test:types` | Pass | 100% type coverage |
+| `vendor/bin/pest` | Pass | 282 passed, 6 skipped (serial) |
+| `vendor/bin/pest --parallel` | Pass | 282 passed, 6 skipped |
+| `composer test` | Pass | Release gate |
+| `composer test:unit` | Pass | Parallel |
 
-## Public API (v0.1.0)
+## Package archive review
 
-**Consumer-facing:**
+`git archive` export includes consumer documentation (`README.md`, `CHANGELOG.md`, `docs/DATABASE_SUPPORT.md`, `config/`, `src/`). Dev-only paths are excluded via `.gitattributes` (`tests/`, internal docs, workbench, CI configs).
 
-- `php artisan schema-contract:check` — primary CLI entry point
-- Publish tag `schema-contract-config`
-- Config keys: `model_paths`, `ignore_models`, `ignore_columns`
+## Parallel Pest boundary
 
-**Programmatic (stable enough for v0.1, not yet a documented extension API):**
+After TestCase scoping, the **full suite** runs deterministically in parallel locally. The CI parallel smoke job continues to run `vendor/bin/pest --parallel` for the complete suite without `continue-on-error`. If CI still flakes, the boundary is Orchestra Testbench boot for Laravel-scoped tests only; pure unit/architecture tests no longer trigger Testbench during parallel workers.
 
-- `ContractAnalyzer` + `RuleRegistry::withDefaults()`
-- Inspector and discovery classes behind contracts
+## Known limitations (accepted for v0.1.0)
 
-No facade, no documented third-party rule registration API in v0.1.0.
-
-## Packaging Review
-
-| Item | Status |
-|---|---|
-| Composer name | `simba-jirira-source/laravel-schema-contract` |
-| Namespace | `SimbaJirira\SchemaContract` |
-| License | MIT (`LICENSE.md`) |
-| Autoload | PSR-4 `src/` + `config/` |
-| Export-ignore | Tests, CI, workbench, dev docs, testbench config excluded from dist |
-| Skeleton artifacts | Removed `public/.gitkeep`; no migrations, views, translations, or routes shipped |
-
-## Known Limitations (accepted for v0.1.0)
-
-- MySQL/PostgreSQL full-suite integration requires CI services or local env vars; 6 tests skip locally without driver config
+- MySQL/PostgreSQL grouped tests skip without driver env vars (6 tests)
 - PostgreSQL native enums and extension types may map to `unknown`
-- SQLite integer size distinctions not available in schema metadata
-- FormRequest, API Resource, Livewire, baselines, JSON/GitHub output, and automatic fixes are roadmap only
-- GitHub Actions green status should be confirmed on the release branch before tagging
-
-## Conflicts With Master Specification
-
-None identified. v0.1.0 scope matches the narrowed Database ↔ Eloquent product promise.
+- Roadmap features (validation, API Resources, Livewire, baselines, GitHub annotations) are not implemented
 
 ## Phase Readiness
 
 | Phase | Status |
 |---|---|
-| 0–16 | Complete |
-| 17 — Post-v0.1 review | **Ready to begin** |
+| 0–16 | Complete (CI confirmation pending) |
+| 17 — Post-v0.1 review | Blocked — await maintainer instruction and green CI |
 
 ---
 
-## Decision: **RELEASE CANDIDATE READY**
+## Decision: **CONDITIONAL** (await green GitHub Actions)
 
-v0.1.0 is ready for maintainer-led tagging and release. Phase 17 architecture review should not begin until explicitly requested.
+Do not tag v0.1.0 until the remediated workflows pass on GitHub. Phase 17 should not begin until explicitly requested.
