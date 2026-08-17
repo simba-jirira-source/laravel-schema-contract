@@ -1,35 +1,38 @@
 # Laravel Schema Contract — Implementation Status
 
-> Updated by Phase 5 — Model Discovery (2026-08-17).
+> Updated by Phase 6 — Schema Inspector (2026-08-17).
 
 ## Current Phase
 
-**Phase 5 — Complete**
+**Phase 6 — Complete**
 
-Next recommended phase: **Phase 6 — Schema Inspector** (await explicit maintainer instruction).
+Next recommended phase: **Phase 7 — Compatibility Engine** (await explicit maintainer instruction).
 
 ## Current State
 
-The package can **discover concrete Eloquent model classes** from configured paths and **inspect/normalize** them separately from analysis orchestration. Schema inspection, compatibility rules, analyzer, and commands are not implemented yet.
+The package can **discover concrete Eloquent models**, **inspect/normalize model casts**, and **inspect normalized database schema metadata** per model connection/table. Compatibility rules, analyzer orchestration, and commands are not implemented yet.
 
-### Phase 5 deliverables
+### Phase 6 deliverables
 
-- `ModelDiscoverer` contract and `EloquentModelDiscoverer` implementation
-- Config-driven discovery from `schema-contract.model_paths` with `app_path('Models')` fallback
-- Support for `schema-contract.ignore_models`
-- Skips abstract classes, interfaces, traits, enums, and non-model classes
-- Duplicate prevention by class name; sorted deterministic output
-- Discovery fixtures and feature tests
+- `SchemaInspector` contract and `EloquentSchemaInspector` implementation
+- `SchemaColumnMetadataFactory` to translate Laravel schema column arrays into `RawColumnMetadata` at the support boundary
+- `MissingTableException` for absent model tables
+- Uses each model's effective connection and table from `ModelDefinition`
+- Returns typed `TableDefinition` / `ColumnDefinition` metadata (type, nullable, default, length, precision, scale when available)
+- Unknown driver types map to `DatabaseType::Unknown` without crashing inspection
+- Raw schema arrays stay inside normalization boundaries — analyzer consumers receive DTOs only
+- Integration tests with temporary SQLite schemas (boolean, integer, decimal, string/text, JSON, date/datetime, nullability/defaults, custom tables/connections, missing tables, unsupported types)
+- Unit tests for `SchemaColumnMetadataFactory`
 
-### Quality command results (Phase 5, 2026-08-17)
+### Quality command results (Phase 6, 2026-08-17)
 
 | Command | Result | Notes |
 |---|---|---|
 | `composer validate --strict` | Pass | |
 | `composer lint:check` (Pint) | Pass | |
-| `composer analyse` (PHPStan L7) | Pass | 17 files; `--memory-limit=512M` in script |
+| `composer analyse` (PHPStan L7) | Pass | 21 files; `--memory-limit=512M` |
 | `composer test:types` | Pass | 100% type coverage |
-| `composer test:unit` | Pass | 133 tests, 244 assertions |
+| `composer test:unit` | Pass | 144 tests, 291 assertions |
 
 ## Existing Architecture
 
@@ -40,39 +43,53 @@ src/
 ├── SchemaContractServiceProvider.php
 ├── Contracts/
 │   ├── ModelDiscoverer.php
-│   └── ModelInspector.php
+│   ├── ModelInspector.php
+│   └── SchemaInspector.php
 ├── Discovery/
 │   └── EloquentModelDiscoverer.php
+├── Exceptions/
+│   └── MissingTableException.php
 ├── Inspectors/
-│   └── EloquentModelInspector.php
+│   ├── EloquentModelInspector.php
+│   └── EloquentSchemaInspector.php
 ├── DTO/
 ├── Enums/
 └── Support/
+    ├── CastNormalizer.php
+    ├── DatabaseColumnNormalizer.php
+    ├── RawColumnMetadata.php
+    └── SchemaColumnMetadataFactory.php
 ```
 
-### Discovery flow
+### Inspection flow
 
 ```text
-config model_paths (+ ignore_models)
+ModelDefinition (connection, table)
         ↓
-EloquentModelDiscoverer::discover()
+EloquentSchemaInspector::inspect()
         ↓
-list<string> concrete model class names
+Schema::connection(...)->getColumns()
+        ↓
+SchemaColumnMetadataFactory → RawColumnMetadata
+        ↓
+DatabaseColumnNormalizer → ColumnDefinition[]
+        ↓
+TableDefinition
 ```
 
-Discovery returns **class names only** — no schema inspection, cast normalization, or rule execution. Analysis phases compose discovery + inspection later.
+Schema inspection is separate from discovery, model inspection, and future analysis orchestration.
 
-### Discovery behavior
+### Schema inspection behavior
 
 | Behavior | Implementation |
 |---|---|
-| Default path | `app_path('Models')` when `model_paths` is empty |
-| Nested namespaces | Recursive directory scan |
-| Abstract / interface / trait / enum | Skipped via reflection |
-| Non-Eloquent classes | Skipped via `is_subclass_of(Model::class)` |
-| Duplicates | Deduplicated by FQCN across overlapping paths |
-| Ignored models | Excluded via `ignore_models` config |
-| Missing paths | Skipped silently |
+| Effective connection/table | Taken from `ModelDefinition` |
+| Missing table | `MissingTableException` |
+| Custom connection | `Schema::connection($model->connection)` |
+| Custom table name | Uses `$model->table` |
+| Unknown driver types | `DatabaseType::Unknown` |
+| Precision/scale | Parsed from driver type when present; null when driver omits them |
+| Raw metadata containment | Laravel column arrays converted in `SchemaColumnMetadataFactory` only |
 
 ## Dependencies
 
@@ -82,52 +99,56 @@ Unchanged from Phase 4 (`illuminate/database`, `illuminate/support`).
 
 | Layer | Status |
 |---|---|
-| Feature — discovery | `tests/Feature/Discovery/EloquentModelDiscovererTest.php` |
-| Feature — inspector | Phase 4 |
-| Fixtures — discovery | `tests/Fixtures/Discovery/` |
-| Unit — normalizers | Phases 3–4 |
+| Integration — schema inspector | `tests/Integration/Inspectors/EloquentSchemaInspectorTest.php` |
+| Unit — schema metadata factory | `tests/Unit/Support/SchemaColumnMetadataFactoryTest.php` |
+| Unit — column normalizer | Phase 3 |
+| Feature — discovery / model inspector | Phases 4–5 |
+| Fixtures — schema | `tests/Fixtures/Schema/` |
+
+Testbench `TestCase` configures in-memory SQLite connections (`testing`, `analytics`) with `use_native_json` for realistic JSON column typing in integration tests.
 
 ## CI State
 
-Unchanged from prior phases. PHPStan script now includes memory limit flag.
+Unchanged from prior phases. PHPStan script includes memory limit flag.
 
 ## Risks
 
-1. **File parsing vs autoload** — FQCN extracted from file contents; requires `require_once` fallback for non-autoloaded paths.
-2. **Multiple classes per file** — supported but uncommon; exotic layouts may need hardening.
-3. **Discovery not wired to analyzer yet** — Phase 9 will orchestrate discovery + inspection.
+1. **SQLite driver fidelity** — Laravel SQLite grammars may omit decimal precision/scale and map JSON to `text` unless `use_native_json` is enabled; integration tests account for both declared and omitted metadata.
+2. **Parallel Pest flakiness** — occasional Testbench skeleton config race on Windows under `--parallel`; re-run or `composer prepare` if config bootstrap fails.
+3. **Schema inspector not wired to analyzer yet** — Phase 9 will orchestrate discovery + model + schema inspection.
 
 ## Conflicts With Master Specification
 
-| Area | Status after Phase 5 |
+| Area | Status after Phase 6 |
 |---|---|
-| Model discovery | Resolved |
-| Ignored models | Resolved (config-driven) |
-| Discovery separate from analysis | Resolved |
-| Schema inspector | Not started — Phase 6 |
+| Schema inspector | Resolved |
+| Typed table/column metadata | Resolved |
+| Missing table handling | Resolved |
+| Raw metadata boundaries | Resolved |
+| Compatibility engine | Not started — Phase 7 |
 | Primary command | Deferred — Phase 10 |
 
 ## Recommended Changes
 
-### Phase 6 (when requested)
+### Phase 7 (when requested)
 
-Schema inspector returning `TableDefinition` per model connection/table.
+Compatibility engine returning structured compatibility information between normalized column types and casts.
 
 ### Later phases
 
-Phases 7–17 per implementation plan.
+Phases 8–17 per implementation plan.
 
 ## Phase Readiness
 
 | Phase | Status |
 |---|---|
-| 0–4 | Complete |
-| 5 — Model discovery | **Complete** |
-| 6 — Schema inspector | **Ready to begin** |
-| 7–17 | Blocked — await maintainer instruction |
+| 0–5 | Complete |
+| 6 — Schema inspector | **Complete** |
+| 7 — Compatibility engine | **Ready to begin** |
+| 8–17 | Blocked — await maintainer instruction |
 
 ---
 
-## Decision: **READY** (for Phase 6)
+## Decision: **READY** (for Phase 7)
 
-Model discovery is implemented, tested, and kept separate from analysis. Schema inspection should not begin until Phase 6 is explicitly requested.
+Schema inspection is implemented, tested, and kept separate from analysis. The compatibility engine should not begin until Phase 7 is explicitly requested.
