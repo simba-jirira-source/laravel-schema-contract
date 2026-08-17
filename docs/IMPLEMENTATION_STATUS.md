@@ -1,35 +1,32 @@
 # Laravel Schema Contract — Implementation Status
 
-> Updated by Phase 1 — Package Foundation (2026-08-17).
+> Updated by Phase 2 — Core Domain Types and DTOs (2026-08-17).
 
 ## Current Phase
 
-**Phase 1 — Complete**
+**Phase 2 — Complete**
 
-Next recommended phase: **Phase 2 — Core Domain Types and DTOs** (await explicit maintainer instruction).
+Next recommended phase: **Phase 3 — Database Type Normalization** (await explicit maintainer instruction).
 
 ## Current State
 
-The repository has a **clean Laravel 13+ / PHP 8.3+ package foundation** aligned with the master specification identity targets (namespace, provider, config). No schema-contract analysis functionality exists yet.
+The package has a **typed v0.1 domain model** for schema/model contract analysis. No normalization, inspection, rules, analyzer, or command logic exists yet.
 
-### Phase 1 deliverables
+### Phase 2 deliverables
 
-- Namespace migrated to `SimbaJirira\SchemaContract`
-- `SchemaContractServiceProvider` with config merge and publish tag `schema-contract-config`
-- Spec-aligned `config/schema-contract.php` (`model_paths`, `ignore_models`, `ignore_columns`)
-- Laravel auto-discovery registered (no facade)
-- Scaffold assets removed (placeholder command, facade, routes, views, translations, migrations, old config)
-- Composer metadata tightened for Laravel 13+ / PHP 8.3+
-- Unused scaffold dev dependencies removed (`laravel/agent-detector`, `laravel/chisel`, `laravel/pao`, `laravel/prompts`)
+- `DatabaseType`, `CastType`, and `Severity` backed enums
+- Readonly DTOs: `ColumnDefinition`, `CastDefinition`, `TableDefinition`, `ModelDefinition`, `ContractViolation`
+- Unit tests covering enum cases, DTO construction, metadata preservation, nullable fields, precision/scale, and violation severity
 
-### Quality command results (Phase 1, 2026-08-17)
+### Quality command results (Phase 2, 2026-08-17)
 
 | Command | Result | Notes |
 |---|---|---|
-| `composer validate --strict` | Pass | Lock file regenerated |
+| `composer validate --strict` | Pass | |
 | `composer lint:check` (Pint) | Pass | |
-| `vendor/bin/pest` | Pass | 5 feature tests, 11 assertions |
-| `composer test:unit` | Pass | 9 tests (feature + arch), 18 assertions |
+| `composer analyse` (PHPStan L7) | Pass | 10 files |
+| `composer test:types` | Pass | 100% type coverage on package source |
+| `composer test:unit` | Pass | 56 tests, 103 assertions |
 
 ## Existing Architecture
 
@@ -37,137 +34,95 @@ The repository has a **clean Laravel 13+ / PHP 8.3+ package foundation** aligned
 
 ```text
 src/
-└── SchemaContractServiceProvider.php
-```
-
-### Config
-
-```text
-config/schema-contract.php
-```
-
-### Target layout (master spec §37 — Phases 2–9)
-
-```text
-src/
 ├── SchemaContractServiceProvider.php
-├── Commands/
-├── Contracts/
-├── Analysis/
-├── Discovery/
-├── Inspectors/
 ├── DTO/
-├── Enums/
-├── Rules/
-└── Support/
+│   ├── CastDefinition.php
+│   ├── ColumnDefinition.php
+│   ├── ContractViolation.php
+│   ├── ModelDefinition.php
+│   └── TableDefinition.php
+└── Enums/
+    ├── CastType.php
+    ├── DatabaseType.php
+    └── Severity.php
 ```
 
-### Service provider behavior
+### Domain model summary
 
-`SchemaContractServiceProvider`:
+| Type | Role |
+|---|---|
+| `DatabaseType` | Normalized database column types (incl. `Unknown`) |
+| `CastType` | Normalized Eloquent cast types (incl. `Custom`, `Unknown`) |
+| `Severity` | `Error`, `Warning`, `Info` for contract violations |
+| `ColumnDefinition` | Column name, type, nullable, default, length, precision, scale, original driver type |
+| `CastDefinition` | Column, cast type, original expression, decimal scale, custom class |
+| `TableDefinition` | Table name, connection, list of `ColumnDefinition` |
+| `ModelDefinition` | Model class, connection, table, primary key, keyed `CastDefinition` map |
+| `ContractViolation` | Severity, model/column context, message, suggested cast, type/scale metadata |
 
-- Merges `config/schema-contract.php` under the `schema-contract` key
-- Publishes config with tag `schema-contract-config` (console only)
-- Does not register commands, routes, views, translations, migrations, or container bindings beyond Laravel defaults
+`ContractResult` and `AnalysisSummary` from the master spec are deferred to later analyzer phases.
 
-### Package auto-discovery
+### Service provider
 
-Configured in `composer.json` under `extra.laravel`:
-
-- Provider: `SimbaJirira\SchemaContract\SchemaContractServiceProvider`
-- No facade alias
+Unchanged from Phase 1 — config merge/publish only.
 
 ## Dependencies
 
-### Production (`composer.json`)
-
-| Package | Constraint |
-|---|---|
-| `php` | `^8.3` |
-| `illuminate/support` | `^13.0` |
-
-### Development
-
-| Package | Constraint |
-|---|---|
-| `orchestra/testbench` | `^11.0` |
-| `pestphp/pest` + Laravel plugin | `^4.6\|\|^5.0` |
-| `pestphp/pest-plugin-type-coverage` | `^4.0\|\|^5.0` |
-| `laravel/pint` | `^1.29` |
-| `larastan/larastan` | `^3.9` |
-| `phpstan/extension-installer` | `^1.4` |
-
-### Composer scripts
-
-Unchanged from scaffold; `test:unit` runs Pest in parallel across all phpunit.xml.dist suites (Feature + Arch).
+Unchanged from Phase 1. No new production dependencies added.
 
 ## Testing State
 
-### Framework
-
-- Pest 4/5 + Orchestra Testbench 11
-- Architecture tests in `tests/ArchTest.php` (namespace updated to `SimbaJirira\SchemaContract`)
-
-### Coverage
-
 | Layer | Status |
 |---|---|
-| Feature | `tests/Feature/PackageFoundationTest.php` — boot, provider load, config merge, config override, config publish |
-| Architecture | Strict types, security/php presets |
-| Unit | None (placeholder removed) |
-| Schema/model contract | None (Phase 2+) |
+| Feature | `tests/Feature/PackageFoundationTest.php` — Phase 1 foundation (5 tests) |
+| Unit — Enums | `tests/Unit/Enums/` — all enum cases and backed-value restoration |
+| Unit — DTOs | `tests/Unit/DTO/DomainDtoTest.php` — construction, metadata, readonly behavior |
+| Architecture | `tests/ArchTest.php` — strict types, security/php presets |
+| Normalization / rules / command | None (Phase 3+) |
 
 ## CI State
 
-`.github/workflows/tests.yml` still matrix-tests Laravel 12.* alongside 13.*. Phase 1 raised the package minimum to Laravel 13+; CI alignment is deferred to Phase 14.
-
-Other gaps unchanged from Phase 0: no `composer validate` step, no `development` branch push trigger, no database matrix.
+Unchanged from Phase 1. CI matrix / Laravel 13 alignment still deferred to Phase 14.
 
 ## Risks
 
-1. **CI / composer constraint mismatch** — Workflow still installs Laravel 12; package now requires `^13.0`. CI may fail or need matrix update in Phase 14.
-2. **Composer package name** — Packagist name remains `simba-jirira-source/laravel-schema-contract`; master spec references `simba-jirira/laravel-schema-contract`. Intentional per workspace conventions until maintainer decides otherwise.
-3. **Premature release signals** — README and CHANGELOG still describe unreleased v0.1.0 (Phase 15/16).
-4. **No Artisan command yet** — `schema-contract:check` deferred to Phase 10; no CLI entry point registered.
+1. **CI / composer constraint mismatch** — unchanged from Phase 1.
+2. **`TableDefinition` / `ModelDefinition` collections** — use typed `list<ColumnDefinition>` and `array<string, CastDefinition>`; future phases must not degrade these to unstructured mixed arrays.
+3. **No normalization yet** — enums/DTOs exist but raw driver/cast strings are not yet mapped (Phase 3–4).
 
 ## Conflicts With Master Specification
 
-| Area | Status after Phase 1 |
+| Area | Status after Phase 2 |
 |---|---|
-| Namespace `SimbaJirira\SchemaContract` | Resolved |
-| Provider `SchemaContractServiceProvider` | Resolved |
-| Config `schema-contract.php` with model/ignore keys | Resolved |
-| Facade removed | Resolved |
-| Scaffold bloat removed | Resolved |
-| Composer package `simba-jirira/laravel-schema-contract` | Open — using `simba-jirira-source/…` |
-| Primary command `schema-contract:check` | Deferred — Phase 10 |
-| Core analysis architecture | Not started — Phase 2+ |
-| README / CHANGELOG accuracy | Open — Phase 15/16 |
-| CI Laravel 13+ alignment | Open — Phase 14 |
+| Core enums and v0.1 DTOs | Resolved |
+| `ContractResult` / `AnalysisSummary` | Deferred — analyzer phase |
+| Normalization, inspection, rules | Not started — Phase 3+ |
+| Primary command | Deferred — Phase 10 |
+| README / CHANGELOG | Open — Phase 15/16 |
+| CI alignment | Open — Phase 14 |
 
 ## Recommended Changes
 
-### Phase 2 (when requested)
+### Phase 3 (when requested)
 
-Add typed domain model: `DatabaseType`, `CastType`, `Severity`, `ModelDefinition`, `TableDefinition`, `ColumnDefinition`, `CastDefinition`, `ContractViolation`.
+Centralized database type normalization from raw driver strings into `DatabaseType` with metadata preservation.
 
 ### Later phases
 
-Unchanged from implementation plan (Phases 3–17).
+Phases 4–17 per implementation plan.
 
 ## Phase Readiness
 
 | Phase | Status |
 |---|---|
 | 0 — Discovery audit | Complete |
-| 1 — Package foundation | **Complete** |
-| 2 — Core domain types and DTOs | **Ready to begin** |
-| 3–17 | Blocked — await maintainer instruction |
+| 1 — Package foundation | Complete |
+| 2 — Core domain types and DTOs | **Complete** |
+| 3 — Database type normalization | **Ready to begin** |
+| 4–17 | Blocked — await maintainer instruction |
 
 ---
 
-## Decision: **READY** (for Phase 2)
+## Decision: **READY** (for Phase 3)
 
-Phase 1 foundation is in place. The package boots in Testbench, auto-discovers correctly, merges and publishes configuration, and passes validation, Pint, and Pest.
-
-**Phase 2 may proceed** once explicitly requested. Do not implement DTOs or analysis until then.
+Phase 2 domain types are in place with full unit coverage and passing quality suite. Normalization logic should not begin until Phase 3 is explicitly requested.
