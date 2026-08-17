@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.0] - 2026-08-17
 
-Initial release. Database schema ↔ Eloquent model contract analysis for Laravel 13+.
+Initial release. Database schema ↔ Eloquent model contract analysis for Laravel 13.x.
 
 ### Added
 

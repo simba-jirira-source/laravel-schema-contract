@@ -1,85 +1,80 @@
 # Laravel Schema Contract — Implementation Status
 
-> Updated by Phase 17 — Post-v0.1 Architecture Review (2026-08-17).
+> Updated by post-v0.1 documentation and distribution remediation (2026-08-18).
+
+## Current Release
+
+**v0.1.0**
+
+**Release status:** Released — 2026-08-17
 
 ## Current Phase
 
 **Phase 17 — Complete**
 
-v0.1.0 implementation phases (0–17) are complete. Further product work requires explicit maintainer instruction for **v0.2.0 — Database ↔ Validation**.
+**Next milestone:** v0.2.0 — Database ↔ Validation (not started; await explicit maintainer instruction)
 
-## Release-Readiness Verdict
+## Released work (v0.1.0)
 
-**READY FOR v0.1.0 RELEASE CANDIDATE**
+Database Schema ↔ Eloquent Model contract analysis:
 
-Phase 16 remediation verified green in GitHub Actions (commit `940b396cb16588068b299030c30d08bdb06028b9`). Phase 17 architecture review confirms v0.1 design is sound for release; recommended refactors are documented for v0.2+ planning.
+- `schema-contract:check` with bulk and targeted model analysis
+- Model discovery, schema/cast inspection, type normalization, compatibility rules
+- SQLite, MySQL/MariaDB, and PostgreSQL support with documented limitations
+- Configuration: `model_paths`, `ignore_models`, `ignore_columns`
+- CI-friendly exit codes and human-readable console output
+- GitHub Actions quality and database compatibility workflows
 
-No tag, GitHub Release, Packagist publish, or branch merge was performed in Phase 17.
+Implementation phases **0–17** are complete.
 
-### GitHub Actions status
+## Completed architecture review (Phase 17)
 
-**CI fully green:** Pass (verified Phase 16)
+Post-v0.1 findings and classified recommendations are recorded in [`docs/ARCHITECTURE_REVIEW.md`](ARCHITECTURE_REVIEW.md) (internal; excluded from Composer distribution).
+
+| Area | v0.1 verdict |
+|---|---|
+| Layer architecture | Strong — boundaries enforced by tests |
+| Rule API | Adequate for column/cast checks |
+| DTOs | Stable readonly foundation |
+| Extension points | Present in code; not yet public API |
+| DB support | Verified for SQLite/MySQL/PostgreSQL with documented limits |
+| False positives | Conservative policy holds |
+| Performance | Functional; in-run table cache deferred |
+| DX / CLI | Appropriate for v0.1 scope |
+
+## Known future technical debt
+
+Documented in the architecture review; not blocking v0.1.0:
+
+- Validation-layer DTOs and inspectors (v0.2)
+- In-run table metadata cache within analysis
+- Container-backed rule registration and public extension API
+- Structured JSON/GitHub output, baselines, suppressions (later roadmap)
+
+## Phase 16 summary (historical)
+
+- Pest/Testbench scoping; Composer download-cache-only in CI
+- Removed post-release `update-changelog.yml`
+- Parallel Pest smoke stabilized; CI verified green on commit `940b396`
+
+## GitHub Actions (last verified: Phase 16)
 
 | Workflow | Status |
 |---|---|
 | `tests` | Pass |
 | `database-compatibility` | Pass |
 
-All matrix jobs including parallel Pest smoke pass on the verified commit.
-
-## Phase 17 deliverables
-
-- Post-v0.1 architecture review of rule API, DTO stability, extension points, database support, false-positive risk, performance, developer experience, command output, configuration, and technical debt
-- Findings and classified recommendations recorded in [`docs/ARCHITECTURE_REVIEW.md`](ARCHITECTURE_REVIEW.md)
-- No v0.2 validation analysis implemented
-- No package code, tests, workflows, or configuration changed
-
-### Review headline
-
-| Area | v0.1 verdict |
-|---|---|
-| Layer architecture | Strong — boundaries enforced by tests |
-| Rule API | Adequate for column/cast checks; not yet suited to validation semantics |
-| DTOs | Stable readonly foundation; validation needs new DTOs |
-| Extension points | Present in code; not container-backed or publicly documented |
-| DB support | Verified for SQLite/MySQL/PostgreSQL with documented limits |
-| False positives | Conservative policy holds; watch `deleted_at` and validation layer in v0.2 |
-| Performance | Functional; in-run table cache not yet implemented (master spec §31 gap) |
-| DX / CLI | Good for v0.1 scope; structured output deferred correctly |
-
-### Recommendation classes (see architecture review for detail)
-
-| Priority | Count | Examples |
-|---|---|---|
-| Required before v0.2 | 5 | Validation inspector/DTO boundary, layer-tagged violations, validation config keys, validation false-positive policy, table cache |
-| Desirable before v1.0 | 6 | Container bindings, JSON/`--strict` output, public API docs, renderer abstraction |
-| Future / nice-to-have | 5 | Baselines, GitHub annotations, public extend API, persistent cache |
-
-## Phase 16 summary (retained)
-
-- Pest/Testbench scoping fix; CI Composer cache-only; `update-changelog.yml` removed
-- `CHANGELOG.md` prepared with `[Unreleased]` above `[0.1.0] - 2026-08-17`
-- Local and CI quality suites pass (282 tests, 6 skipped driver groups)
-
-## Quality command results (last verified: Phase 16)
-
-| Command | Result |
-|---|---|
-| `composer test` | Pass |
-| `vendor/bin/pest` / `--parallel` | Pass |
-| `composer analyse` | Pass (PHPStan L8) |
-
-Phase 17 made no code changes; tests were not re-run.
+Includes PHP 8.3/8.4/8.5 matrix, prefer-lowest/prefer-stable, Windows, parallel Pest smoke, MySQL, and PostgreSQL jobs.
 
 ## Phase Readiness
 
-| Phase | Status |
+| Milestone | Status |
 |---|---|
-| 0–17 | **Complete** |
-| v0.2 — Database ↔ Validation | **Not started** — await maintainer instruction |
+| v0.1.0 | **Released** |
+| v0.2.0 — Database ↔ Validation | **Not started** |
 
 ---
 
-## Decision: **RELEASE CANDIDATE READY** (v0.1.0)
+## Decision
 
-Architecture review complete. Proceed to maintainer-led v0.1.0 tag/release when ready. Next product step: **v0.2.0 — Database ↔ Validation** per [`docs/ARCHITECTURE_REVIEW.md`](ARCHITECTURE_REVIEW.md#recommended-next-step-toward-v020).
+v0.1.0 is released. Next product work is **v0.2.0 — Database ↔ Validation** when explicitly requested.

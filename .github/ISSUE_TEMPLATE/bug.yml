@@ -8,12 +8,14 @@ body:
       value: |
         Thanks for taking the time to report a bug. Please complete the fields below so we can reproduce the issue quickly.
 
+        Do **not** include database credentials, API secrets, production records, or customer data.
+
   - type: input
     id: package-version
     attributes:
       label: Package Version
       description: Provide the package version that you are using.
-      placeholder: 1.0.0
+      placeholder: 0.1.0
     validations:
       required: true
 
@@ -36,19 +38,63 @@ body:
       required: true
 
   - type: input
-    id: operating-system
+    id: database-driver
     attributes:
-      label: Operating System
-      description: If relevant, provide the operating system and version where this occurs.
-      placeholder: macOS 15.0, Ubuntu 24.04, Windows 11
+      label: Database Driver
+      description: Provide the database driver and version if relevant.
+      placeholder: mysql 8.4, pgsql 16, sqlite
+    validations:
+      required: false
+
+  - type: input
+    id: affected-model
+    attributes:
+      label: Affected Model
+      description: Provide the Eloquent model class or table involved.
+      placeholder: App\Models\User
+    validations:
+      required: false
+
+  - type: input
+    id: command
+    attributes:
+      label: Command Executed
+      description: Provide the exact Artisan command you ran.
+      placeholder: php artisan schema-contract:check User
     validations:
       required: false
 
   - type: textarea
-    id: description
+    id: schema-definition
     attributes:
-      label: Description
-      description: Provide a clear description of the issue you are facing.
+      label: Schema Definition
+      description: Provide the relevant migration or schema snippet (structure only, no row data).
+      placeholder: "$table->boolean('active');"
+    validations:
+      required: false
+
+  - type: textarea
+    id: cast-definition
+    attributes:
+      label: Cast Definition
+      description: Provide the relevant model cast configuration.
+      placeholder: "'active' => 'integer'"
+    validations:
+      required: false
+
+  - type: textarea
+    id: actual-result
+    attributes:
+      label: Actual Result
+      description: What happened, including command output if helpful.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-result
+    attributes:
+      label: Expected Result
+      description: What you expected to happen instead.
     validations:
       required: true
 
@@ -56,7 +102,7 @@ body:
     id: steps-to-reproduce
     attributes:
       label: Steps To Reproduce
-      description: Provide detailed steps to reproduce the issue. A minimal reproduction repository is helpful when possible.
+      description: Provide detailed steps to reproduce. A minimal reproduction repository is helpful when possible.
     validations:
       required: true
 
