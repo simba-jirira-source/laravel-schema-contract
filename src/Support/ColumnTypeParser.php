@@ -13,6 +13,7 @@ final class ColumnTypeParser
     {
         $normalized = strtolower(trim($driverType));
         $normalized = (string) preg_replace('/\s+(unsigned|zerofill)\b/', '', $normalized);
+        $normalized = $this->stripTimeZoneQualifiers($normalized);
 
         $length = null;
         $precision = null;
@@ -39,6 +40,14 @@ final class ColumnTypeParser
             'precision' => $precision,
             'scale' => $scale,
         ];
+    }
+
+    private function stripTimeZoneQualifiers(string $driverType): string
+    {
+        $driverType = (string) preg_replace('/\s+without time zone$/', '', $driverType);
+        $driverType = (string) preg_replace('/\s+with time zone$/', '', $driverType);
+
+        return trim($driverType);
     }
 
     private function normalizeBaseType(string $base): string

@@ -52,6 +52,8 @@ it('normalizes driver-specific aliases across sqlite mysql and postgresql', func
     ['CHARACTER VARYING(100)', DatabaseType::String],
     ['DOUBLE PRECISION', DatabaseType::Double],
     ['TIMESTAMP WITH TIME ZONE', DatabaseType::Timestamp],
+    ['timestamp(0) without time zone', DatabaseType::Timestamp],
+    ['timestamp(6) with time zone', DatabaseType::Timestamp],
     ['ENUM(\'active\',\'inactive\')', DatabaseType::Enum],
     ['MEDIUMINT', DatabaseType::Integer],
     ['LONGTEXT', DatabaseType::Text],

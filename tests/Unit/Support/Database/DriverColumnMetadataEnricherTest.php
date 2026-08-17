@@ -108,4 +108,11 @@ it('maps postgresql uuid and jsonb types from driver metadata fixtures', functio
         'nullable' => true,
         'default' => null,
     ], DatabaseType::Timestamp],
+    'timestamp without time zone' => [[
+        'name' => 'archived_at',
+        'type' => 'timestamp(0) without time zone',
+        'type_name' => 'timestamp',
+        'nullable' => true,
+        'default' => null,
+    ], DatabaseType::Timestamp],
 ]);

@@ -100,7 +100,7 @@ final class DriverColumnMetadataEnricher
 
         if (
             ! str_contains($driverType, '(')
-            && in_array($column['type_name'], ['int2', 'int4', 'int8', 'bool', 'jsonb', 'uuid'], true)
+            && in_array($column['type_name'], ['int2', 'int4', 'int8', 'bool', 'jsonb', 'uuid', 'timestamp', 'timestamptz'], true)
         ) {
             $driverType = $column['type_name'];
         }
