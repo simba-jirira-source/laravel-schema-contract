@@ -13,13 +13,13 @@
 
 ## Purpose
 
-Laravel Schema Contract is developer tooling for Laravel applications. It answers a focused question for **v0.1.0**:
+Laravel Schema Contract is developer tooling for Laravel applications. It answers a focused question for **v0.1.x**:
 
 > Do my database columns and Eloquent model casts describe compatible data types?
 
 The package discovers Eloquent models, reads live schema metadata from each model's effective connection and table, normalizes database and cast types, and reports contract violations with CI-friendly exit codes.
 
-**v0.1.0 scope:** Database Schema ↔ Eloquent Model only.
+**v0.1.x scope:** Database Schema ↔ Eloquent Model only.
 
 The analyzer is read-only. It never mutates schema, models, or application data.
 
@@ -152,7 +152,7 @@ return [
 
 ### Database drivers
 
-| Driver | Support in v0.1.0 | CI verification |
+| Driver | Support in v0.1.x | CI verification |
 |---|---|---|
 | SQLite | First-class | Default test suite |
 | MySQL / MariaDB | First-class | `database-compatibility` workflow |
@@ -176,7 +176,7 @@ Built-in and class-based casts normalize to:
 
 Custom cast classes are recognized without being misclassified as enums. Expressions such as `decimal:2` retain scale metadata.
 
-### Contract rules (v0.1.0)
+### Contract rules (v0.1.x)
 
 - Cast matches column type
 - Decimal scale matches (when precision/scale metadata is available)
@@ -218,7 +218,7 @@ vendor/bin/pest
 
 ## Limitations
 
-**Not implemented in v0.1.0** (planned for later releases):
+**Not implemented in v0.1.x** (planned for later releases):
 
 - Database ↔ Validation (FormRequest validation analysis)
 - API Resource analysis
