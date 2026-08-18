@@ -1,12 +1,20 @@
 # Laravel Schema Contract — Implementation Status
 
-> Updated by post-v0.1 documentation and distribution remediation (2026-08-18).
+> Updated for v0.1.1 release preparation (2026-08-18).
 
 ## Current Release
 
 **v0.1.0**
 
 **Release status:** Released — 2026-08-17
+
+## Pending release
+
+**v0.1.1** — maintenance release (documentation, distribution, security, and repository-quality fixes only).
+
+**Release preparation:** Complete.
+
+**Published status:** Not yet tagged or released — awaiting maintainer release actions.
 
 ## Current Phase
 
@@ -71,6 +79,7 @@ Includes PHP 8.3/8.4/8.5 matrix, prefer-lowest/prefer-stable, Windows, parallel 
 | Milestone | Status |
 |---|---|
 | v0.1.0 | **Released** |
+| v0.1.1 | **Prepared** (not tagged) |
 | v0.2.0 — Database ↔ Validation | **Not started** |
 
 ---

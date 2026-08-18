@@ -5,7 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased](https://github.com/simba-jirira-source/laravel-schema-contract/compare/v0.1.0...HEAD)
+## [Unreleased](https://github.com/simba-jirira-source/laravel-schema-contract/compare/v0.1.1...HEAD)
+
+## [0.1.1] - 2026-08-18
+
+Maintenance release: documentation, distribution, security, and repository-quality fixes. No functional or API changes.
+
+### Fixed
+
+- Corrected Laravel compatibility wording to **Laravel 13.x** in consumer-facing documentation (matching Composer `^13.0` constraints)
+- Fixed README terminology (`uncast` instead of `uncased`)
+
+### Changed
+
+- Corrected PHP namespace references in `docs/DATABASE_SUPPORT.md`
+- Updated README links to repository-only documentation to absolute GitHub URLs
+- Improved Composer distribution export hygiene by excluding `docs/ARCHITECTURE_REVIEW.md`
+- Updated implementation status documentation after the v0.1.0 release
+- Improved security documentation (`.github/SECURITY.md`) and bug-report issue template diagnostic fields
+- Updated bundled Boost skill Laravel compatibility wording to Laravel 13.x
 
 ## [0.1.0] - 2026-08-17
 
@@ -38,4 +56,5 @@ Initial release. Database schema ↔ Eloquent model contract analysis for Larave
 - PHPStan level 8 with Larastan
 - Laravel Pint formatting and 100% Pest type coverage on package source
 
+[0.1.1]: https://github.com/simba-jirira-source/laravel-schema-contract/releases/tag/v0.1.1
 [0.1.0]: https://github.com/simba-jirira-source/laravel-schema-contract/releases/tag/v0.1.0
