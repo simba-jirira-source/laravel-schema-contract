@@ -64,7 +64,7 @@ End with `READY` or `BLOCKED`.
 
 ## Phase 1 — Package Foundation
 
-Ensure a clean Laravel 13+/PHP 8.3+ package foundation:
+Ensure a clean Laravel 13.x/PHP 8.3+ package foundation:
 
 - Composer metadata
 - namespace

@@ -12,3 +12,5 @@ composer.lock
 /dev-pack/cursor-prompts
 /dev-pack/PACK_MANIFEST.json
 /dev-pack/README_CURSOR_PACK.md
+/docs/maintainer/
+/prompts/

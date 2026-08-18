@@ -17,7 +17,11 @@
 /testbench.yaml     export-ignore
 /public             export-ignore
 /.cursor            export-ignore
+/prompts            export-ignore
 /docs/IMPLEMENTATION_PLAN.md   export-ignore
 /docs/IMPLEMENTATION_STATUS.md export-ignore
 /docs/MASTER_SPEC.md            export-ignore
 /docs/ARCHITECTURE_REVIEW.md    export-ignore
+/docs/V0_1_X_STABILIZATION_SPEC.md export-ignore
+/docs/V0_1_X_IMPLEMENTATION_PLAN.md export-ignore
+/docs/V0_1_X_ACCEPTANCE_CRITERIA.md export-ignore

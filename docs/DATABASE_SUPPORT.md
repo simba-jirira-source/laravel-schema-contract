@@ -1,6 +1,6 @@
 # Database Support and Limitations
 
-This document describes how **Laravel Schema Contract v0.1.0** handles database driver metadata for SQLite, MySQL/MariaDB, and PostgreSQL.
+This document describes how **Laravel Schema Contract v0.1.x** handles database driver metadata for SQLite, MySQL/MariaDB, and PostgreSQL.
 
 It lists verified behavior, known limitations, and how the package degrades when metadata is incomplete.
 
@@ -92,7 +92,7 @@ Standard Laravel timestamp columns (`created_at`, `updated_at`) are excluded fro
 | PostgreSQL | native enum/user-defined types may appear as custom names | often `unknown` unless recognized |
 | SQLite | not native | usually `string` |
 
-PostgreSQL native enum types are not fully verified across all deployment styles in v0.1.0.
+PostgreSQL native enum types are not fully verified across all deployment styles in v0.1.x.
 
 ### Text / String
 
@@ -117,7 +117,7 @@ PostgreSQL native enum types are not fully verified across all deployment styles
 
 - Requires a live database connection for integration verification.
 - Custom user-defined types (including some enum deployments) may map to `unknown`.
-- Extension types such as `geometry` / `geography` are not verified in v0.1.0.
+- Extension types such as `geometry` / `geography` are not verified in v0.1.x.
 
 ### General
 

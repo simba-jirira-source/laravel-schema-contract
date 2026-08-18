@@ -38,7 +38,7 @@ Database Schema ↔ Eloquent Model
 
 Minimum target:
 
-- Laravel 13+
+- Laravel 13.x
 - PHP 8.3+
 - Composer 2+
 - Pest
@@ -739,7 +739,7 @@ This is a target, not permission to create everything in Phase 1.
 
 A release candidate should satisfy all of the following:
 
-- installs into Laravel 13+
+- installs into Laravel 13.x
 - package auto-discovery works
 - model discovery works
 - custom table names work

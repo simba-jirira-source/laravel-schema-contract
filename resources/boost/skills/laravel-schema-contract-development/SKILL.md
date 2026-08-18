@@ -89,7 +89,7 @@ Use `ignore_models` for bulk runs, or pass a model argument in CI for targeted c
 
 ## Anti-patterns
 
-- Do not expect FormRequest, API Resource, Livewire, baseline, JSON, or GitHub annotation features in v0.1.0 — they are not implemented.
+- Do not expect FormRequest, API Resource, Livewire, baseline, JSON, or GitHub annotation features in v0.1.x — they are not implemented.
 - Do not publish non-existent tags; only `schema-contract-config` exists.
 - Do not treat warnings as CI failures unless your team policy requires it; only errors exit `1` by default.
 - Do not assume all models use the default connection; the analyzer respects each model's effective connection and table.
